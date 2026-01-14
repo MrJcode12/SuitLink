@@ -8,7 +8,6 @@ const ForgotPassPage = () => {
   const [step, setStep] = useState("email");
   const [email, setEmail] = useState("");
   const [code, setCode] = useState(["", "", "", "", "", ""]);
-  const [verifiedCode, setVerifiedCode] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -69,7 +68,7 @@ const ForgotPassPage = () => {
     inputRefsArray.current[focusIndex]?.focus();
   };
 
-  const handleVerifyCode = async () => {
+  const handleVerifyCode = () => {
     const verificationCode = code.join("");
     if (verificationCode.length !== 6) {
       setError("Please enter the complete 6-digit code");
@@ -77,16 +76,8 @@ const ForgotPassPage = () => {
     }
 
     setError("");
-    setLoading(true);
-
-    try {
-      setVerifiedCode(verificationCode);
-      setStep("reset");
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
+    // Just move to the next step - verification happens on password reset
+    setStep("reset");
   };
 
   const handleResetPassword = async (e) => {
@@ -103,26 +94,31 @@ const ForgotPassPage = () => {
       return;
     }
 
-    if (!verifiedCode) {
-      setError("Invalid verification code. Please verify the code first.");
+    const verificationCode = code.join("");
+    if (verificationCode.length !== 6) {
+      setError("Invalid verification code");
       return;
     }
 
     setLoading(true);
 
     try {
-      await authService.resetPassword(email, verifiedCode, newPassword);
+      // This now verifies the code AND resets the password
+      await authService.resetPassword(email, verificationCode, newPassword);
       navigate("/forgot-password-success", { state: { email } });
     } catch (err) {
+      // Check if error is related to invalid/expired code
+      const errorMessage = err.message.toLowerCase();
+
       if (
-        err.message.includes("does not exist") ||
-        err.message.includes("Invalid") ||
-        err.message.includes("expired")
+        errorMessage.includes("does not exist") ||
+        errorMessage.includes("invalid") ||
+        errorMessage.includes("expired")
       ) {
         setError("Invalid or expired reset code. Please request a new code.");
-        setStep("verify");
+        // Clear the code and go back to verify step
         setCode(["", "", "", "", "", ""]);
-        setVerifiedCode("");
+        setStep("verify");
       } else {
         setError(err.message);
       }
@@ -138,8 +134,8 @@ const ForgotPassPage = () => {
     try {
       await authService.resendResetPassword(email);
       setCode(["", "", "", "", "", ""]);
-      setVerifiedCode("");
       setStep("verify");
+      // Use a success message component instead of alert
       const successMsg = document.createElement("div");
       successMsg.className =
         "fixed top-4 right-4 bg-green-50 border border-green-200 rounded-lg p-4 shadow-lg z-50";
@@ -252,7 +248,6 @@ const ForgotPassPage = () => {
                   onClick={() => {
                     setStep("email");
                     setCode(["", "", "", "", "", ""]);
-                    setVerifiedCode("");
                     setError("");
                   }}
                   className="group inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground hover:underline mb-4 transition-colors"

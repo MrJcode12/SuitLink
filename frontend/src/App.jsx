@@ -6,6 +6,7 @@ import VerifyEmailPage from "./pages/auth/VerifyEmailPage";
 import VerifyEmailSuccessPage from "./pages/auth/VerifyEmailSuccessPage";
 import ForgotPassPage from "./pages/auth/ForgotPassPage";
 import ForgotPassSuccessPage from "./pages/auth/ForgotPassSuccessPage";
+import LandingPage from "./pages/landingPage/LandingPage";
 
 // Placeholder Dashboard component
 const DashboardPlaceholder = () => {
@@ -73,7 +74,7 @@ const App = () => {
         <Route path="/dashboard" element={<DashboardPlaceholder />} />
 
         {/* Default redirect */}
-        <Route path="/" element={<Navigate to="/login" replace />} />
+        <Route path="/" element={<LandingPage />} />
 
         {/* 404 - Catch all */}
         <Route path="*" element={<NotFound />} />
