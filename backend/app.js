@@ -1,0 +1,35 @@
+import dotenv from 'dotenv';
+import express from 'express';
+import morgan from 'morgan';
+import helmet from 'helmet';
+import cookieParser from 'cookie-parser';
+import cors from 'cors';
+
+import db from './database/db.js';
+
+import authRouter from './routes/auth.routes.js';
+
+dotenv.config();
+const app = express();
+
+db(); 
+
+app.use(express.json());
+app.use(morgan('dev'));
+app.use(helmet());
+app.use(cors({
+  origin: process.env.CLIENT_URL,
+  credentials: true
+}));
+app.use(cookieParser());
+
+
+
+app.use('/api/v1/auth/', authRouter);
+
+
+app.get('/', (req, res) => {
+  res.send('Welcome to SuitLink API!')
+})
+
+export default app;
