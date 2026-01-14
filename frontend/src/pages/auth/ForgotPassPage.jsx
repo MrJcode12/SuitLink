@@ -5,9 +5,10 @@ import { authService } from "../../services/authService";
 
 const ForgotPassPage = () => {
   const navigate = useNavigate();
-  const [step, setStep] = useState("email"); // 'email', 'verify', or 'reset'
+  const [step, setStep] = useState("email");
   const [email, setEmail] = useState("");
   const [code, setCode] = useState(["", "", "", "", "", ""]);
+  const [verifiedCode, setVerifiedCode] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -68,12 +69,23 @@ const ForgotPassPage = () => {
     inputRefsArray.current[focusIndex]?.focus();
   };
 
-  const handleVerifyCode = () => {
+  const handleVerifyCode = async () => {
     const verificationCode = code.join("");
-    if (verificationCode.length === 6) {
-      setStep("reset");
-    } else {
+    if (verificationCode.length !== 6) {
       setError("Please enter the complete 6-digit code");
+      return;
+    }
+
+    setError("");
+    setLoading(true);
+
+    try {
+      setVerifiedCode(verificationCode);
+      setStep("reset");
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -86,19 +98,34 @@ const ForgotPassPage = () => {
       return;
     }
 
-    if (newPassword.length < 6) {
-      setError("Password must be at least 6 characters");
+    if (newPassword.length < 8) {
+      setError("Password must be at least 8 characters");
+      return;
+    }
+
+    if (!verifiedCode) {
+      setError("Invalid verification code. Please verify the code first.");
       return;
     }
 
     setLoading(true);
 
     try {
-      const verificationCode = code.join("");
-      await authService.resetPassword(email, verificationCode, newPassword);
+      await authService.resetPassword(email, verifiedCode, newPassword);
       navigate("/forgot-password-success", { state: { email } });
     } catch (err) {
-      setError(err.message);
+      if (
+        err.message.includes("does not exist") ||
+        err.message.includes("Invalid") ||
+        err.message.includes("expired")
+      ) {
+        setError("Invalid or expired reset code. Please request a new code.");
+        setStep("verify");
+        setCode(["", "", "", "", "", ""]);
+        setVerifiedCode("");
+      } else {
+        setError(err.message);
+      }
     } finally {
       setLoading(false);
     }
@@ -111,7 +138,14 @@ const ForgotPassPage = () => {
     try {
       await authService.resendResetPassword(email);
       setCode(["", "", "", "", "", ""]);
-      alert("Reset code resent successfully!");
+      setVerifiedCode("");
+      setStep("verify");
+      const successMsg = document.createElement("div");
+      successMsg.className =
+        "fixed top-4 right-4 bg-green-50 border border-green-200 rounded-lg p-4 shadow-lg z-50";
+      successMsg.innerHTML = `<p class="text-sm text-green-600">Reset code resent successfully!</p>`;
+      document.body.appendChild(successMsg);
+      setTimeout(() => successMsg.remove(), 3000);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -128,7 +162,7 @@ const ForgotPassPage = () => {
         <div className="w-full max-w-md">
           {/* Logo */}
           <button
-            onClick={() => navigate("/")}
+            onClick={() => navigate("/login")}
             className="inline-flex items-center gap-2 mb-8 text-foreground hover:opacity-80 transition-opacity"
           >
             <Briefcase className="w-5 h-5" style={{ color: "#047857" }} />
@@ -218,6 +252,7 @@ const ForgotPassPage = () => {
                   onClick={() => {
                     setStep("email");
                     setCode(["", "", "", "", "", ""]);
+                    setVerifiedCode("");
                     setError("");
                   }}
                   className="group inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground hover:underline mb-4 transition-colors"
@@ -265,6 +300,7 @@ const ForgotPassPage = () => {
                         onChange={(e) => handleChange(index, e.target.value)}
                         onKeyDown={(e) => handleKeyDown(index, e)}
                         onPaste={handlePaste}
+                        disabled={loading}
                         className="w-full aspect-square text-center text-2xl font-medium border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring text-foreground transition-shadow bg-input-background"
                       />
                     ))}
@@ -273,15 +309,15 @@ const ForgotPassPage = () => {
 
                 <button
                   onClick={handleVerifyCode}
-                  disabled={!isCodeComplete}
+                  disabled={!isCodeComplete || loading}
                   className={`w-full py-2.5 rounded-lg transition-opacity text-sm font-medium ${
-                    isCodeComplete
+                    isCodeComplete && !loading
                       ? "text-white hover:opacity-90"
                       : "cursor-not-allowed opacity-50"
                   }`}
                   style={{ backgroundColor: "#047857" }}
                 >
-                  Verify Code
+                  {loading ? "Verifying..." : "Verify Code"}
                 </button>
 
                 <div className="text-center">
@@ -290,7 +326,7 @@ const ForgotPassPage = () => {
                     <button
                       type="button"
                       onClick={handleResendCode}
-                      disabled={resending}
+                      disabled={resending || loading}
                       className="hover:opacity-80 transition-opacity font-normal disabled:opacity-50"
                       style={{ color: "#047857" }}
                     >
@@ -309,7 +345,7 @@ const ForgotPassPage = () => {
                   <strong className="text-foreground font-medium">
                     Security tip:
                   </strong>{" "}
-                  This code will expire in 10 minutes. Never share it with
+                  This code will expire in 15 minutes. Never share it with
                   anyone, even SuitLink support staff.
                 </p>
               </div>

@@ -7,33 +7,78 @@ import VerifyEmailSuccessPage from "./pages/auth/VerifyEmailSuccessPage";
 import ForgotPassPage from "./pages/auth/ForgotPassPage";
 import ForgotPassSuccessPage from "./pages/auth/ForgotPassSuccessPage";
 
+// Placeholder Dashboard component
+const DashboardPlaceholder = () => {
+  React.useEffect(() => {
+    console.log("Dashboard page - Coming soon!");
+  }, []);
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="text-center">
+        <h1 className="text-4xl font-bold text-foreground mb-4">
+          Dashboard Coming Soon
+        </h1>
+        <p className="text-muted-foreground mb-8">
+          This page is under construction
+        </p>
+        <button
+          onClick={() => (window.location.href = "/login")}
+          className="px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:opacity-90"
+        >
+          Back to Login
+        </button>
+      </div>
+    </div>
+  );
+};
+
+// 404 Not Found component
+const NotFound = () => {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="text-center">
+        <h1 className="text-6xl font-bold text-foreground mb-4">404</h1>
+        <p className="text-xl text-muted-foreground mb-8">Page not found</p>
+        <button
+          onClick={() => (window.location.href = "/login")}
+          className="px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:opacity-90"
+        >
+          Go to Login
+        </button>
+      </div>
+    </div>
+  );
+};
+
 const App = () => {
   return (
-    <>
-      <BrowserRouter>
-        <Routes>
-          {/* Auth Routes */}
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/signup" element={<SignUpPage />} />
-          <Route path="/verify-email" element={<VerifyEmailPage />} />
-          <Route
-            path="/verify-email-success"
-            element={<VerifyEmailSuccessPage />}
-          />
-          <Route path="/forgot-password" element={<ForgotPassPage />} />
-          <Route
-            path="/forgot-password-success"
-            element={<ForgotPassSuccessPage />}
-          />
+    <BrowserRouter>
+      <Routes>
+        {/* Auth Routes */}
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/signup" element={<SignUpPage />} />
+        <Route path="/verify-email" element={<VerifyEmailPage />} />
+        <Route
+          path="/verify-email-success"
+          element={<VerifyEmailSuccessPage />}
+        />
+        <Route path="/forgot-password" element={<ForgotPassPage />} />
+        <Route
+          path="/forgot-password-success"
+          element={<ForgotPassSuccessPage />}
+        />
 
-          {/* Default redirect, will be replaced by the Landing page. */}
-          <Route path="/" element={<Navigate to="/login" />} />
+        {/* Dashboard - Placeholder */}
+        <Route path="/dashboard" element={<DashboardPlaceholder />} />
 
-          {/* 404 - Catch all, will be replaced by 404 handler */}
-          <Route path="*" element={<Navigate to="/login" />} />
-        </Routes>
-      </BrowserRouter>
-    </>
+        {/* Default redirect */}
+        <Route path="/" element={<Navigate to="/login" replace />} />
+
+        {/* 404 - Catch all */}
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </BrowserRouter>
   );
 };
 
