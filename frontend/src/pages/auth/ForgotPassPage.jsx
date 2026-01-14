@@ -1,19 +1,32 @@
-import { useState, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useRef, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Briefcase, ArrowLeft, Shield, CheckCircle } from "lucide-react";
 import { authService } from "../../services/authService";
 
 const ForgotPassPage = () => {
   const navigate = useNavigate();
-  const [step, setStep] = useState("email");
-  const [email, setEmail] = useState("");
+  const location = useLocation();
+
+  // Get initial state from location
+  const initialEmail = location.state?.email || "";
+  const initialStep = location.state?.step || "email";
+  const initialError = location.state?.error || "";
+
+  const [step, setStep] = useState(initialStep);
+  const [email, setEmail] = useState(initialEmail);
   const [code, setCode] = useState(["", "", "", "", "", ""]);
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState(initialError);
   const [resending, setResending] = useState(false);
   const inputRefsArray = useRef([]);
+
+  // Clear initial error after showing
+  useEffect(() => {
+    if (initialError) {
+      const timer = setTimeout(() => setError(""), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [initialError]);
 
   // Email submission handler
   const handleEmailSubmit = async (e) => {
@@ -68,7 +81,7 @@ const ForgotPassPage = () => {
     inputRefsArray.current[focusIndex]?.focus();
   };
 
-  const handleVerifyCode = () => {
+  const handleVerifyCode = async () => {
     const verificationCode = code.join("");
     if (verificationCode.length !== 6) {
       setError("Please enter the complete 6-digit code");
@@ -76,52 +89,20 @@ const ForgotPassPage = () => {
     }
 
     setError("");
-    // Just move to the next step - verification happens on password reset
-    setStep("reset");
-  };
-
-  const handleResetPassword = async (e) => {
-    e.preventDefault();
-    setError("");
-
-    if (newPassword !== confirmPassword) {
-      setError("Passwords do not match");
-      return;
-    }
-
-    if (newPassword.length < 8) {
-      setError("Password must be at least 8 characters");
-      return;
-    }
-
-    const verificationCode = code.join("");
-    if (verificationCode.length !== 6) {
-      setError("Invalid verification code");
-      return;
-    }
-
     setLoading(true);
 
     try {
-      // This now verifies the code AND resets the password
-      await authService.resetPassword(email, verificationCode, newPassword);
-      navigate("/forgot-password-success", { state: { email } });
+      // Validate the code by calling the backend
+      // We'll use a simple validation - just navigate if code is properly formatted
+      // The actual validation happens when user submits new password
+      navigate("/reset-password", {
+        state: {
+          email,
+          code: verificationCode,
+        },
+      });
     } catch (err) {
-      // Check if error is related to invalid/expired code
-      const errorMessage = err.message.toLowerCase();
-
-      if (
-        errorMessage.includes("does not exist") ||
-        errorMessage.includes("invalid") ||
-        errorMessage.includes("expired")
-      ) {
-        setError("Invalid or expired reset code. Please request a new code.");
-        // Clear the code and go back to verify step
-        setCode(["", "", "", "", "", ""]);
-        setStep("verify");
-      } else {
-        setError(err.message);
-      }
+      setError(err.message);
     } finally {
       setLoading(false);
     }
@@ -134,8 +115,6 @@ const ForgotPassPage = () => {
     try {
       await authService.resendResetPassword(email);
       setCode(["", "", "", "", "", ""]);
-      setStep("verify");
-      // Use a success message component instead of alert
       const successMsg = document.createElement("div");
       successMsg.className =
         "fixed top-4 right-4 bg-green-50 border border-green-200 rounded-lg p-4 shadow-lg z-50";
@@ -239,7 +218,7 @@ const ForgotPassPage = () => {
                 </p>
               </div>
             </>
-          ) : step === "verify" ? (
+          ) : (
             <>
               {/* Verify Step - Header */}
               <div className="mb-6">
@@ -345,86 +324,6 @@ const ForgotPassPage = () => {
                 </p>
               </div>
             </>
-          ) : (
-            <>
-              {/* Reset Step - Header */}
-              <div className="mb-6">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setStep("verify");
-                    setError("");
-                  }}
-                  className="group inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground hover:underline mb-4 transition-colors"
-                >
-                  <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
-                  Back
-                </button>
-                <h1 className="text-2xl mb-2 font-normal text-foreground">
-                  Create new password
-                </h1>
-                <p className="text-sm text-muted-foreground">
-                  Enter a new password for your account.
-                </p>
-              </div>
-
-              {/* Error Message */}
-              {error && (
-                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-                  <p className="text-sm text-red-600">{error}</p>
-                </div>
-              )}
-
-              {/* Reset Password Form */}
-              <form className="space-y-4" onSubmit={handleResetPassword}>
-                <div>
-                  <label
-                    htmlFor="newPassword"
-                    className="block text-sm mb-1.5 text-foreground font-normal"
-                  >
-                    New password
-                  </label>
-                  <input
-                    id="newPassword"
-                    type="password"
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    placeholder="••••••"
-                    className="w-full px-3.5 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring text-sm text-foreground placeholder:text-muted-foreground transition-shadow bg-input-background"
-                    required
-                    disabled={loading}
-                  />
-                </div>
-
-                <div>
-                  <label
-                    htmlFor="confirmPassword"
-                    className="block text-sm mb-1.5 text-foreground font-normal"
-                  >
-                    Confirm password
-                  </label>
-                  <input
-                    id="confirmPassword"
-                    type="password"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    placeholder="••••••"
-                    className="w-full px-3.5 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring text-sm text-foreground placeholder:text-muted-foreground transition-shadow bg-input-background"
-                    required
-                    disabled={loading}
-                  />
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full text-white py-2.5 rounded-lg hover:opacity-90 transition-opacity text-sm font-medium disabled:opacity-50"
-                  style={{ backgroundColor: "#047857" }}
-                >
-                  {loading ? "Resetting..." : "Reset password"}
-                </button>
-              </form>
-            </>
           )}
         </div>
       </div>
@@ -450,81 +349,39 @@ const ForgotPassPage = () => {
 
         <div className="relative z-10 max-w-md">
           <div className="bg-white/10 backdrop-blur-md rounded-2xl p-8 shadow-2xl border border-white/20">
-            {step === "email" || step === "verify" ? (
-              <>
-                <h3 className="text-2xl text-white mb-4 font-medium">
-                  Your account security matters
-                </h3>
-                <p className="text-white/80 mb-6 leading-relaxed">
-                  We take your security seriously. Our password reset process
-                  ensures only you can access your account and application data.
-                </p>
-                <div className="space-y-3">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">
-                      <CheckCircle className="w-4 h-4 text-white" />
-                    </div>
-                    <span className="text-white/90 text-sm">
-                      Secure password recovery
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">
-                      <CheckCircle className="w-4 h-4 text-white" />
-                    </div>
-                    <span className="text-white/90 text-sm">
-                      Protected account data
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">
-                      <CheckCircle className="w-4 h-4 text-white" />
-                    </div>
-                    <span className="text-white/90 text-sm">
-                      Email verification required
-                    </span>
-                  </div>
+            <h3 className="text-2xl text-white mb-4 font-medium">
+              Your account security matters
+            </h3>
+            <p className="text-white/80 mb-6 leading-relaxed">
+              We take your security seriously. Our password reset process
+              ensures only you can access your account and application data.
+            </p>
+            <div className="space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">
+                  <CheckCircle className="w-4 h-4 text-white" />
                 </div>
-              </>
-            ) : (
-              <>
-                <h3 className="text-2xl text-white mb-4 font-medium">
-                  Reset your password securely
-                </h3>
-                <p className="text-white/80 mb-6 leading-relaxed">
-                  We use industry-standard verification to ensure only you can
-                  reset your password and access your account.
-                </p>
-                <div className="space-y-3">
-                  <div className="flex items-start gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <CheckCircle className="w-4 h-4 text-white" />
-                    </div>
-                    <div>
-                      <div className="text-white font-medium mb-1">
-                        Two-factor verification
-                      </div>
-                      <div className="text-white/80 text-sm">
-                        Email code ensures account ownership
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <CheckCircle className="w-4 h-4 text-white" />
-                    </div>
-                    <div>
-                      <div className="text-white font-medium mb-1">
-                        Time-limited codes
-                      </div>
-                      <div className="text-white/80 text-sm">
-                        Codes expire for added security
-                      </div>
-                    </div>
-                  </div>
+                <span className="text-white/90 text-sm">
+                  Secure password recovery
+                </span>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">
+                  <CheckCircle className="w-4 h-4 text-white" />
                 </div>
-              </>
-            )}
+                <span className="text-white/90 text-sm">
+                  Protected account data
+                </span>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">
+                  <CheckCircle className="w-4 h-4 text-white" />
+                </div>
+                <span className="text-white/90 text-sm">
+                  Email verification required
+                </span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
