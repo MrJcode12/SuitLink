@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Briefcase, ArrowLeft, CheckCircle } from "lucide-react";
 import { authService } from "../../services/authService";
@@ -7,63 +7,85 @@ const ResetPassPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const email = location.state?.email;
-  const verifiedCode = location.state?.code;
+  const code = location.state?.code;
 
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // If no email or code, redirect back to forgot password
-  if (!email || !verifiedCode) {
-    navigate("/forgot-password");
-    return null;
-  }
+  // Redirect if no email or code provided
+  useEffect(() => {
+    if (!email || !code) {
+      navigate("/forgot-password");
+    }
+  }, [email, code, navigate]);
 
   const handleResetPassword = async (e) => {
     e.preventDefault();
     setError("");
 
+    // Validate passwords match
     if (newPassword !== confirmPassword) {
       setError("Passwords do not match");
       return;
     }
 
+    // Validate password length
     if (newPassword.length < 8) {
       setError("Password must be at least 8 characters");
       return;
     }
 
+    // Debug: Log what we're sending
+    console.log("Resetting password with:", {
+      email,
+      code,
+      newPassword: "***hidden***",
+    });
+
     setLoading(true);
 
     try {
-      await authService.resetPassword(email, verifiedCode, newPassword);
+      // Backend validates the code and resets password
+      const response = await authService.resetPassword(
+        email,
+        code,
+        newPassword
+      );
+      console.log("Reset password response:", response);
+
+      // Success - redirect to success page
       navigate("/forgot-password-success", { state: { email } });
     } catch (err) {
+      console.error("Reset password error:", err);
+
+      // Check if error is related to invalid/expired code
+      const errorMsg = err.message.toLowerCase();
       if (
-        err.message.includes("does not exist") ||
-        err.message.includes("Invalid") ||
-        err.message.includes("expired")
+        errorMsg.includes("does not exist") ||
+        errorMsg.includes("invalid") ||
+        errorMsg.includes("expired") ||
+        errorMsg.includes("code")
       ) {
-        setError(
-          "Invalid or expired reset code. Redirecting to verification..."
+        // Code is invalid/expired - redirect back to forgot password to get new code
+        alert(
+          "Your reset code has expired or is invalid. Please request a new code."
         );
-        setTimeout(() => {
-          navigate("/forgot-password", {
-            state: {
-              email,
-              step: "verify",
-              error: "Reset code expired. Please request a new code.",
-            },
-          });
-        }, 2000);
+        navigate("/forgot-password");
       } else {
+        // Other errors (like weak password, etc.)
         setError(err.message);
       }
     } finally {
       setLoading(false);
     }
   };
+
+  // Don't render if redirecting
+  if (!email || !code) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen flex flex-col lg:flex-row bg-background">
@@ -83,11 +105,7 @@ const ResetPassPage = () => {
           <div className="mb-6">
             <button
               type="button"
-              onClick={() =>
-                navigate("/forgot-password", {
-                  state: { email, step: "verify" },
-                })
-              }
+              onClick={() => navigate("/forgot-password", { state: { email } })}
               className="group inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground hover:underline mb-4 transition-colors"
             >
               <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
@@ -97,7 +115,8 @@ const ResetPassPage = () => {
               Create new password
             </h1>
             <p className="text-sm text-muted-foreground">
-              Enter a new password for your account.
+              Enter a new password for{" "}
+              <span className="text-foreground font-medium">{email}</span>
             </p>
           </div>
 
@@ -122,11 +141,16 @@ const ResetPassPage = () => {
                 type="password"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
-                placeholder="••••••"
+                placeholder="••••••••"
                 className="w-full px-3.5 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring text-sm text-foreground placeholder:text-muted-foreground transition-shadow bg-input-background"
+                autoComplete="new-password"
                 required
                 disabled={loading}
+                minLength={8}
               />
+              <p className="text-xs text-muted-foreground mt-1">
+                Must be at least 8 characters
+              </p>
             </div>
 
             <div>
@@ -141,22 +165,38 @@ const ResetPassPage = () => {
                 type="password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="••••••"
+                placeholder="••••••••"
                 className="w-full px-3.5 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring text-sm text-foreground placeholder:text-muted-foreground transition-shadow bg-input-background"
+                autoComplete="new-password"
                 required
                 disabled={loading}
+                minLength={8}
               />
             </div>
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full text-white py-2.5 rounded-lg hover:opacity-90 transition-opacity text-sm font-medium disabled:opacity-50"
+              className="w-full text-white py-2.5 rounded-lg hover:opacity-90 transition-opacity text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
               style={{ backgroundColor: "#047857" }}
             >
-              {loading ? "Resetting..." : "Reset password"}
+              {loading ? "Resetting password..." : "Reset password"}
             </button>
           </form>
+
+          {/* Security Info */}
+          <div
+            className="mt-6 p-4 rounded-lg border border-border"
+            style={{ backgroundColor: "#f9fafb" }}
+          >
+            <p className="text-sm text-muted-foreground">
+              <strong className="text-foreground font-medium">
+                Security tip:
+              </strong>{" "}
+              Choose a strong password with a mix of letters, numbers, and
+              special characters.
+            </p>
+          </div>
         </div>
       </div>
 
@@ -212,6 +252,19 @@ const ResetPassPage = () => {
                   </div>
                   <div className="text-white/80 text-sm">
                     Codes expire for added security
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <CheckCircle className="w-4 h-4 text-white" />
+                </div>
+                <div>
+                  <div className="text-white font-medium mb-1">
+                    Encrypted password storage
+                  </div>
+                  <div className="text-white/80 text-sm">
+                    Your password is securely hashed
                   </div>
                 </div>
               </div>

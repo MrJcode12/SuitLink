@@ -3,17 +3,17 @@ import { useNavigate } from "react-router-dom";
 import { authService } from "../../services/authService";
 
 // Shared Components
-import AuthContainer from "../../components/auth/shared/AuthContainer";
-import AuthFormContainer from "../../components/auth/shared/AuthFormContainer";
-import AuthMarketingSection from "../../components/auth/shared/AuthMarketingSection";
-import Logo from "../../components/auth/shared/Logo";
-import ErrorMessage from "../../components/auth/shared/ErrorMessage";
-import AuthDivider from "../../components/auth/shared/AuthDivider";
-import SocialLoginButtons from "../../components/auth/shared/SocialLoginButtons";
+import AuthContainer from "../../components/Auth/shared/AuthContainer";
+import AuthFormContainer from "../../components/Auth/Shared/AuthFormContainer";
+import AuthMarketingSection from "../../components/Auth/Shared/AuthMarketingSection";
+import Logo from "../../components/Auth/Shared/Logo";
+import ErrorMessage from "../../components/Auth/Shared/ErrorMessage";
+import AuthDivider from "../../components/Auth/Shared/AuthDivider";
+import SocialLoginButtons from "../../components/Auth/Shared/SocialLoginButtons";
 
 // Page-specific Components
-import LoginHeader from "../../components/auth/loginPage/LoginHeader";
-import LoginForm from "../../components/auth/loginPage/LoginForm";
+import LoginHeader from "../../components/Auth/LoginPage/LoginHeader";
+import LoginForm from "../../components/Auth/LogInPage/LoginForm";
 
 const LoginPage = () => {
   const navigate = useNavigate();

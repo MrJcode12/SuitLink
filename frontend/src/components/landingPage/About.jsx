@@ -55,7 +55,7 @@ const About = () => {
       <div className="max-w-7xl mx-auto px-6">
         <div className="mb-16">
           <p className="text-emerald-600 text-sm mb-4 uppercase tracking-wide">
-            BENEFITS
+            ABOUT
           </p>
           <h2 className="text-5xl text-black mb-6">
             Transparent hiring,{" "}

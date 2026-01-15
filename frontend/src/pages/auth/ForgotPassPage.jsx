@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Briefcase, ArrowLeft, Shield, CheckCircle } from "lucide-react";
 import { authService } from "../../services/authService";
@@ -7,26 +7,17 @@ const ForgotPassPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Get initial state from location
+  // Get initial state from navigation (if redirected back from reset page)
   const initialEmail = location.state?.email || "";
-  const initialStep = location.state?.step || "email";
   const initialError = location.state?.error || "";
 
-  const [step, setStep] = useState(initialStep);
+  const [step, setStep] = useState(initialEmail ? "verify" : "email");
   const [email, setEmail] = useState(initialEmail);
   const [code, setCode] = useState(["", "", "", "", "", ""]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(initialError);
   const [resending, setResending] = useState(false);
   const inputRefsArray = useRef([]);
-
-  // Clear initial error after showing
-  useEffect(() => {
-    if (initialError) {
-      const timer = setTimeout(() => setError(""), 5000);
-      return () => clearTimeout(timer);
-    }
-  }, [initialError]);
 
   // Email submission handler
   const handleEmailSubmit = async (e) => {
@@ -81,7 +72,7 @@ const ForgotPassPage = () => {
     inputRefsArray.current[focusIndex]?.focus();
   };
 
-  const handleVerifyCode = async () => {
+  const handleVerifyCode = () => {
     const verificationCode = code.join("");
     if (verificationCode.length !== 6) {
       setError("Please enter the complete 6-digit code");
@@ -89,23 +80,10 @@ const ForgotPassPage = () => {
     }
 
     setError("");
-    setLoading(true);
-
-    try {
-      // Validate the code by calling the backend
-      // We'll use a simple validation - just navigate if code is properly formatted
-      // The actual validation happens when user submits new password
-      navigate("/reset-password", {
-        state: {
-          email,
-          code: verificationCode,
-        },
-      });
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
+    // Navigate to reset password page with email and code
+    navigate("/reset-password", {
+      state: { email, code: verificationCode },
+    });
   };
 
   const handleResendCode = async () => {
@@ -291,7 +269,7 @@ const ForgotPassPage = () => {
                   }`}
                   style={{ backgroundColor: "#047857" }}
                 >
-                  {loading ? "Verifying..." : "Verify Code"}
+                  Continue
                 </button>
 
                 <div className="text-center">
