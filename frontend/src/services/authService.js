@@ -16,7 +16,6 @@ export const authService = {
     return api.post("/resend-verification", { email });
   },
 
-  // Login
   login: async (email, password) => {
     return api.post("/login", { email, password });
   },

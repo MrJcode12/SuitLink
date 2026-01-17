@@ -17,17 +17,24 @@ export const useAuth = () => {
   const checkAuth = async () => {
     try {
       setLoading(true);
+
       const response = await axios.get(`${API_BASE_URL}/me`, {
         withCredentials: true,
+        headers: {
+          "Cache-Control": "no-cache, no-store, must-revalidate",
+          Pragma: "no-cache",
+          Expires: "0",
+        },
       });
 
-      if (response.data.success) {
+      if (response?.data?.success && response?.data?.data) {
         setUser(response.data.data);
+      } else {
+        setUser(null);
       }
     } catch (err) {
       console.error("Auth check failed:", err);
       setUser(null);
-      // Don't redirect here - let individual pages handle it
     } finally {
       setLoading(false);
     }

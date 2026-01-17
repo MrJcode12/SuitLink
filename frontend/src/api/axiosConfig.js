@@ -11,9 +11,15 @@ const api = axios.create({
   },
 });
 
-// Response interceptor error handler
 api.interceptors.response.use(
-  (response) => response.data,
+  (response) => {
+    if (response.status === 304) {
+      console.warn("Received 304 Not Modified - auth state may be stale");
+      return null;
+    }
+
+    return response.data;
+  },
   (error) => {
     const message = error.response?.data?.message || "An error occurred";
     throw new Error(message);

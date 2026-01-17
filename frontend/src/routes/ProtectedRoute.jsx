@@ -8,6 +8,7 @@ const ProtectedRoute = ({
 }) => {
   const { user, loading, isEmployer, isApplicant } = useAuth();
 
+  // Wait for auth resolution
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -19,16 +20,26 @@ const ProtectedRoute = ({
     );
   }
 
+  // Redirect to login if not authenticated
   if (!user) {
     return <Navigate to="/login" replace />;
   }
 
+  // ✅ FIX: Proper role-based redirects
   if (requireEmployer && !isEmployer) {
-    return <Navigate to="/applicant-dashboard" replace />;
+    // If user is applicant, send to applicant dashboard
+    // Otherwise, send to login (shouldn't happen, but safety)
+    return (
+      <Navigate to={isApplicant ? "/applicant-dashboard" : "/login"} replace />
+    );
   }
 
   if (requireApplicant && !isApplicant) {
-    return <Navigate to="/employer-dashboard" replace />;
+    // If user is employer, send to employer dashboard
+    // Otherwise, send to login (shouldn't happen, but safety)
+    return (
+      <Navigate to={isEmployer ? "/employer-dashboard" : "/login"} replace />
+    );
   }
 
   return children;

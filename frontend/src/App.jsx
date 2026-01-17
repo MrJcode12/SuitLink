@@ -12,6 +12,7 @@ import EmployerDashboardPage from "./pages/dashboard/EmployerDashboardPage";
 import PostJobPage from "./pages/dashboard/PostJobPage";
 import EmployerProfile from "./pages/profiles/EmployerProfile";
 import ProtectedRoute from "./routes/ProtectedRoute";
+import useAuth from "./hooks/useAuth";
 
 // 404 Not Found component
 const NotFound = () => {
@@ -25,6 +26,26 @@ const NotFound = () => {
           className="px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:opacity-90"
         >
           Go to Login
+        </button>
+      </div>
+    </div>
+  );
+};
+
+// ✅ ADD: Temporary Applicant Dashboard (placeholder)
+const ApplicantDashboardPage = () => {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="text-center">
+        <h1 className="text-3xl font-bold text-gray-900 mb-4">
+          Applicant Dashboard
+        </h1>
+        <p className="text-gray-600 mb-8">This page is under construction.</p>
+        <button
+          onClick={() => (window.location.href = "/login")}
+          className="px-6 py-3 bg-chart-1 text-white rounded-lg hover:opacity-90"
+        >
+          Back to Login
         </button>
       </div>
     </div>
@@ -76,12 +97,22 @@ const App = () => {
           }
         />
 
-        {/* Legacy dashboard route - redirects based on role */}
+        {/* ✅ ADD: Applicant Protected Routes */}
+        <Route
+          path="/applicant-dashboard"
+          element={
+            <ProtectedRoute requireApplicant={true}>
+              <ApplicantDashboardPage />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* ✅ FIX: Smart /dashboard redirect based on role */}
         <Route
           path="/dashboard"
           element={
             <ProtectedRoute>
-              <EmployerDashboardPage />
+              <SmartDashboardRedirect />
             </ProtectedRoute>
           }
         />
@@ -94,6 +125,29 @@ const App = () => {
       </Routes>
     </BrowserRouter>
   );
+};
+
+// ✅ ADD: Smart redirect component that checks user role
+const SmartDashboardRedirect = () => {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-chart-1"></div>
+      </div>
+    );
+  }
+
+  if (user?.role === "employer") {
+    return <Navigate to="/employer-dashboard" replace />;
+  }
+
+  if (user?.role === "applicant") {
+    return <Navigate to="/applicant-dashboard" replace />;
+  }
+
+  return <Navigate to="/login" replace />;
 };
 
 export default App;
