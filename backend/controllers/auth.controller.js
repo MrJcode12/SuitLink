@@ -20,9 +20,9 @@ import {
 // POST /register
 const register = async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password, role } = req.body;
 
-    const { code } = await AuthService.register(name, email, password);
+    const { code } = await AuthService.register(name, email, password, role);
     await sendVerificationEmail(email, code);
 
     const responseObj = {

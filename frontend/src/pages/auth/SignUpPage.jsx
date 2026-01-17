@@ -36,10 +36,16 @@ const SignUpPage = () => {
     setLoading(true);
 
     try {
+      const role = formData.userType === "employer" ? "employer" : "applicant";
+
+      console.log("Signup attempt with role:", role);
+      console.log("UserType was:", formData.userType);
+
       await authService.register(
         formData.fullName,
         formData.email,
-        formData.password
+        formData.password,
+        role
       );
 
       // Registration successful

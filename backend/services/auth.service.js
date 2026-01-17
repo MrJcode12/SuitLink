@@ -1,15 +1,18 @@
-import User from '../models/User.js';
-import generateToken from './token.service.js';
-import verificationCode from '../utils/verification.utils.js';
+import User from "../models/User.js";
+import generateToken from "./token.service.js";
+import verificationCode from "../utils/verification.utils.js";
 
 class AuthService {
-
   // Registration
-  static async register(name, email, password) {
+  static async register(name, email, password, role) {
     const exists = await User.findOne({ email });
 
     if (exists) {
-      throw new Error('Email already exists!');
+      throw new Error("Email already exists!");
+    }
+
+    if (!role || !["applicant", "employer"].includes(role)) {
+      throw new Error("Valid role is required");
     }
 
     const { code, expiryTime } = verificationCode();
@@ -18,34 +21,35 @@ class AuthService {
       name,
       email,
       passwordHash: password,
+      role,
       isEmailVerified: false,
       emailVerificationCode: code,
       emailVerificationExpires: expiryTime,
     };
 
     const user = await User.create(userReg);
-  
+
     return { userId: user._id, email: user.email, code };
   }
 
   // Email verification
   static async verifyEmail(email, code) {
-    const user = await User.findOne({ email }).select('+emailVerificationCode');
+    const user = await User.findOne({ email }).select("+emailVerificationCode");
 
     if (!user) {
-      throw new Error('User not found!');
+      throw new Error("User not found!");
     }
 
     if (user.isEmailVerified) {
-      throw new Error('Email already verified!');
+      throw new Error("Email already verified!");
     }
 
     if (!user.emailVerificationCode || user.emailVerificationCode !== code) {
-      throw new Error('Invalid verification code!');
+      throw new Error("Invalid verification code!");
     }
 
     if (user.emailVerificationExpires < Date.now()) {
-      throw new Error('Verification code expired!');
+      throw new Error("Verification code expired!");
     }
 
     user.isEmailVerified = true;
@@ -64,19 +68,22 @@ class AuthService {
     const user = await User.findOne({ email });
 
     if (!user) {
-      throw new Error('User not found!');
+      throw new Error("User not found!");
     }
 
     if (user.isEmailVerified) {
-      throw new Error('Email already verified!');
+      throw new Error("Email already verified!");
     }
 
-    if (user.emailVerificationExpires && user.emailVerificationExpires < Date.now()) {
+    if (
+      user.emailVerificationExpires &&
+      user.emailVerificationExpires < Date.now()
+    ) {
       user.emailVerificationAttempts = 0;
     }
 
     if (user.emailVerificationAttempts >= 3) {
-      throw new Error('Too many requests. Please wait for the code to expire.');
+      throw new Error("Too many requests. Please wait for the code to expire.");
     }
 
     const { code, expiryTime } = verificationCode();
@@ -91,23 +98,23 @@ class AuthService {
 
   // Logging In
   static async login(email, password) {
-    const user = await User.findOne({ email }).select('+passwordHash');
+    const user = await User.findOne({ email }).select("+passwordHash");
 
     if (!user) {
-      throw new Error('User not found!');
+      throw new Error("User not found!");
     }
 
-    if (user.accStatus !== 'active') {
-      throw new Error('Account not active!');
+    if (user.accStatus !== "active") {
+      throw new Error("Account not active!");
     }
 
     if (!user.isEmailVerified) {
-      throw new Error('Please verify your email first!');
+      throw new Error("Please verify your email first!");
     }
 
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
-      throw new Error('Invalid password!');
+      throw new Error("Invalid password!");
     }
 
     user.lastLoginAt = new Date();
@@ -117,12 +124,12 @@ class AuthService {
     return { user, token };
   }
 
-  // Code for Forgot Password 
+  // Code for Forgot Password
   static async forgotPassword(email) {
     const user = await User.findOne({ email });
 
     if (!user) {
-      throw new Error('User not found!');
+      throw new Error("User not found!");
     }
 
     if (user.forgotPasswordExpires && user.forgotPasswordExpires < Date.now()) {
@@ -130,7 +137,9 @@ class AuthService {
     }
 
     if (user.forgotPasswordAttempts >= 3) {
-      throw new Error('Too many requests. Please wait before requesting another reset code.');
+      throw new Error(
+        "Too many requests. Please wait before requesting another reset code."
+      );
     }
 
     const { code, expiryTime } = verificationCode();
@@ -139,7 +148,6 @@ class AuthService {
     user.forgotPasswordExpires = expiryTime;
     user.forgotPasswordAttempts += 1;
 
-
     await user.save();
 
     return { email: user.email, code };
@@ -147,22 +155,22 @@ class AuthService {
 
   // Reset Password
   static async resetPassword(email, codeFromUser, newPassword) {
-    const user = await User.findOne({ email }).select('+passwordHash');
+    const user = await User.findOne({ email }).select("+passwordHash");
 
     if (!user) {
-      throw new Error('User not found!');
+      throw new Error("User not found!");
     }
 
     if (!user.forgotPasswordCode) {
-      throw new Error('Reset password code does not exist!');
+      throw new Error("Reset password code does not exist!");
     }
 
     if (user.forgotPasswordCode !== codeFromUser) {
-      throw new Error('Invalid reset code!');
+      throw new Error("Invalid reset code!");
     }
 
     if (user.forgotPasswordExpires < Date.now()) {
-      throw new Error('Reset code has expired!');
+      throw new Error("Reset code has expired!");
     }
 
     user.passwordHash = newPassword;
@@ -175,7 +183,7 @@ class AuthService {
 
     return {
       email: user.email,
-      message: 'Password reset successfully!',
+      message: "Password reset successfully!",
     };
   }
 
@@ -184,7 +192,7 @@ class AuthService {
     const user = await User.findOne({ email });
 
     if (!user) {
-      throw new Error('User not found!');
+      throw new Error("User not found!");
     }
 
     if (user.forgotPasswordExpires && user.forgotPasswordExpires < Date.now()) {
@@ -192,7 +200,9 @@ class AuthService {
     }
 
     if (user.forgotPasswordAttempts >= 3) {
-      throw new Error('Too many requests. Please wait for the reset code to expire.');
+      throw new Error(
+        "Too many requests. Please wait for the reset code to expire."
+      );
     }
 
     const { code, expiryTime } = verificationCode();

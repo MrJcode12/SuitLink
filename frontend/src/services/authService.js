@@ -3,7 +3,7 @@ import api from "../api/axiosConfig.js";
 export const authService = {
   // Register new account
   register: async (name, email, password) => {
-    return api.post("/register", { name, email, password });
+    return api.post("/register", { name, email, password, role });
   },
 
   // Verify email with code
