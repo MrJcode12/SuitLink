@@ -1,6 +1,3 @@
-// frontend/src/services/companyService.js
-// This file should already exist - verify it has these methods:
-
 import axios from "axios";
 
 const API_BASE_URL = "http://localhost:8888/api/v1/company";
@@ -39,13 +36,13 @@ export const companyService = {
     return companyApi.patch("/profile", profileData);
   },
 
-  // Upload company logo
+  // Upload company logo -
   uploadLogo: async (file) => {
     const formData = new FormData();
     formData.append("logo", file);
 
     return axios
-      .post(`${API_BASE_URL}/profile/logo`, formData, {
+      .put(`${API_BASE_URL}/profile/logo`, formData, {
         withCredentials: true,
         headers: {
           "Content-Type": "multipart/form-data",

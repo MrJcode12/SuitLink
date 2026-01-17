@@ -15,6 +15,7 @@ import jobService from "../../services/jobService";
 import CompanySetupModal from "../../components/EmployerDashboard/CompanySetupModal";
 import JobCard from "../../components/EmployerDashboard/JobCard";
 import StatsCard from "../../components/EmployerDashboard/StatsCard";
+import Logo from "../../components/Auth/Shared/Logo";
 
 const EmployerDashboardPage = () => {
   const navigate = useNavigate();
@@ -143,7 +144,6 @@ const EmployerDashboardPage = () => {
 
   return (
     <>
-      {/* ✅ FIX: Show modal if no profile OR showSetupModal is true */}
       {(showSetupModal || !companyProfile) && (
         <CompanySetupModal onSuccess={handleSetupSuccess} />
       )}
@@ -153,16 +153,7 @@ const EmployerDashboardPage = () => {
         <header className="bg-white border-b border-gray-200 sticky top-0 z-40">
           <div className="px-6 py-4">
             <div className="flex items-center justify-between">
-              {/* Logo */}
-              <div className="flex items-center gap-2">
-                <Briefcase className="w-6 h-6 text-chart-1" />
-                <span className="text-xl text-gray-900">SuitLink</span>
-                {hasCredibilityBadge && (
-                  <span className="ml-2 px-2 py-1 bg-chart-1/10 text-chart-1 text-xs rounded-full font-medium">
-                    Verified
-                  </span>
-                )}
-              </div>
+              <Logo />
 
               {/* Desktop Navigation */}
               <nav className="hidden md:flex items-center gap-6">

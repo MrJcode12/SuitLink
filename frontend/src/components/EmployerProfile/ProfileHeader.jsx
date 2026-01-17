@@ -1,6 +1,6 @@
-import { Edit2, X } from "lucide-react";
+import { Edit2 } from "lucide-react";
 
-const ProfileHeader = ({ companyProfile, isEditing, onEditToggle }) => {
+const ProfileHeader = ({ companyProfile, onEdit }) => {
   // Calculate stats from company profile
   const activeJobs = companyProfile?.metrics?.activeJobsCount || 0;
   const totalApplicants = companyProfile?.metrics?.totalApplicants || 0;
@@ -14,12 +14,12 @@ const ProfileHeader = ({ companyProfile, isEditing, onEditToggle }) => {
         <div className="flex items-end justify-between -mt-16 mb-6">
           <div className="flex items-end gap-4">
             {/* Company Logo or Icon */}
-            <div className="w-32 h-32 rounded-xl bg-white border-4 border-white shadow-lg flex items-center justify-center text-4xl">
+            <div className="w-32 h-32 rounded-xl bg-white border-4 border-white shadow-lg flex items-center justify-center text-4xl overflow-hidden">
               {companyProfile?.logo?.url ? (
                 <img
                   src={companyProfile.logo.url}
                   alt={companyProfile.companyName}
-                  className="w-full h-full object-cover rounded-xl"
+                  className="w-full h-full object-cover"
                 />
               ) : (
                 <span className="text-chart-1">
@@ -80,17 +80,11 @@ const ProfileHeader = ({ companyProfile, isEditing, onEditToggle }) => {
             </div>
           </div>
           <button
-            onClick={onEditToggle}
+            onClick={onEdit}
             className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-2"
           >
-            {isEditing ? (
-              <X className="w-4 h-4" />
-            ) : (
-              <Edit2 className="w-4 h-4" />
-            )}
-            <span className="text-sm">
-              {isEditing ? "Cancel" : "Edit Profile"}
-            </span>
+            <Edit2 className="w-4 h-4" />
+            <span className="text-sm">Edit Profile</span>
           </button>
         </div>
 
