@@ -40,6 +40,11 @@ export const authService = {
   resendResetPassword: async (email) => {
     return api.post("/resend-reset-password", { email });
   },
+
+  // Get current user
+  getCurrentUser: async () => {
+    return api.get("/me");
+  },
 };
 
 export default authService;

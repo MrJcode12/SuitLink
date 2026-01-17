@@ -11,32 +11,7 @@ import LandingPage from "./pages/landingPage/LandingPage";
 import EmployerDashboardPage from "./pages/dashboard/EmployerDashboardPage";
 import PostJobPage from "./pages/dashboard/PostJobPage";
 import EmployerProfile from "./pages/profiles/EmployerProfile";
-
-// // Placeholder Dashboard component
-// const DashboardPlaceholder = () => {
-//   React.useEffect(() => {
-//     console.log("Dashboard page - Coming soon!");
-//   }, []);
-
-//   return (
-//     <div className="min-h-screen flex items-center justify-center bg-background">
-//       <div className="text-center">
-//         <h1 className="text-4xl font-bold text-foreground mb-4">
-//           Dashboard Coming Soon
-//         </h1>
-//         <p className="text-muted-foreground mb-8">
-//           This page is under construction
-//         </p>
-//         <button
-//           onClick={() => (window.location.href = "/login")}
-//           className="px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:opacity-90"
-//         >
-//           Back to Login
-//         </button>
-//       </div>
-//     </div>
-//   );
-// };
+import ProtectedRoute from "./routes/ProtectedRoute";
 
 // 404 Not Found component
 const NotFound = () => {
@@ -60,7 +35,7 @@ const App = () => {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Auth Routes */}
+        {/* Public Auth Routes */}
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignUpPage />} />
         <Route path="/verify-email" element={<VerifyEmailPage />} />
@@ -74,13 +49,44 @@ const App = () => {
           path="/forgot-password-success"
           element={<ForgotPassSuccessPage />}
         />
-        {/* Dashboard - Placeholder */}
-        {/* Employer's Dashboard */}
-        <Route path="/dashboard" element={<EmployerDashboardPage />} />
-        <Route path="/employer/post-job" element={<PostJobPage />} />
-        <Route path="/employer-profile" element={<EmployerProfile />} />
 
-        {/* Default redirect */}
+        {/* Employer Protected Routes */}
+        <Route
+          path="/employer-dashboard"
+          element={
+            <ProtectedRoute requireEmployer={true}>
+              <EmployerDashboardPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/employer/post-job"
+          element={
+            <ProtectedRoute requireEmployer={true}>
+              <PostJobPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/employer-profile"
+          element={
+            <ProtectedRoute requireEmployer={true}>
+              <EmployerProfile />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Legacy dashboard route - redirects based on role */}
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <EmployerDashboardPage />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Landing Page */}
         <Route path="/" element={<LandingPage />} />
 
         {/* 404 - Catch all */}
