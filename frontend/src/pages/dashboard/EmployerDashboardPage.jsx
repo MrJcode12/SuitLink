@@ -10,10 +10,10 @@ import {
   MessageSquare,
   Bell,
 } from "lucide-react";
-import StatsCard from "../../components/EmployerDashboard/StatsCard";
-import ApplicantCard from "../../components/EmployerDashboard/ApplicantCard";
-import JobCard from "../../components/EmployerDashboard/JobCard";
-import ApplicantTableRow from "../../components/EmployerDashboard/ApplicantTableRow";
+import StatsCard from "../../components/Employer/StatsCard";
+import ApplicantCard from "../../components/Employer/ApplicantCard";
+import JobCard from "../../components/Employer/JobCard";
+import ApplicantTableRow from "../../components/Employer/ApplicantTableRow";
 import Logo from "../../components/Auth/Shared/Logo";
 
 // Mock data - Replace with API calls
@@ -130,8 +130,9 @@ const EmployerDashboardPage = () => {
     navigate("/employer/post-job");
   };
 
-  const handleGoProfile = () => {
-    navigate("/employer-profile");
+  const handleLogout = () => {
+    // Add logout logic here
+    navigate("/login");
   };
 
   // Stats data - Replace with API call
@@ -233,7 +234,7 @@ const EmployerDashboardPage = () => {
                 <span className="absolute -top-1 -right-1 w-2 h-2 bg-emerald-600 rounded-full" />
               </button>
               <button
-                onClick={handleGoProfile}
+                onClick={handleLogout}
                 className="w-9 h-9 rounded-full bg-emerald-600 flex items-center justify-center text-white text-sm"
               >
                 TC
