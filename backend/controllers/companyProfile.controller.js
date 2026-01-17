@@ -1,16 +1,16 @@
 import CompanyProfileService from "../services/companyProfile.service.js";
 import {
   createCompanyProfileSchema,
-  updateCompanyProfileSchema
-} from '../validators/companyProfile.validator.js';
+  updateCompanyProfileSchema,
+} from "../validators/companyProfile.validator.js";
 
 /*
-  ENDPOINTS (/api/v1/company/) 
-    POST /profile 
+  ENDPOINTS (/api/v1/company/)
+    POST /profile
     GET /profile
     PATCH /profile
     DELETE /profile
-    PUT /profile/logo 
+    PUT /profile/logo
 */
 
 // POST /profile
@@ -28,7 +28,7 @@ const createProfile = async (req, res) => {
 
     res.status(201).json(responseObj);
   } catch (err) {
-    if (err.name === 'ZodError') {
+    if (err.name === "ZodError") {
       return res.status(400).json({
         success: false,
         errors: err.flatten().fieldErrors,
@@ -40,7 +40,7 @@ const createProfile = async (req, res) => {
       message: err.message,
     });
   }
-}
+};
 
 // GET /profile
 const getProfile = async (req, res) => {
@@ -52,6 +52,7 @@ const getProfile = async (req, res) => {
     const responseObj = {
       success: true,
       data: profile,
+      needsSetup: !profile,
     };
 
     res.status(200).json(responseObj);
@@ -61,7 +62,7 @@ const getProfile = async (req, res) => {
       message: err.message,
     });
   }
-}
+};
 
 // PATCH /profile
 const updateProfile = async (req, res) => {
@@ -78,19 +79,19 @@ const updateProfile = async (req, res) => {
 
     res.status(200).json(responseObj);
   } catch (err) {
-    if (err.name === 'ZodError') {
+    if (err.name === "ZodError") {
       return res.status(400).json({
         success: false,
         errors: err.flatten().fieldErrors,
       });
     }
-    
+
     res.status(400).json({
       success: false,
       message: err.message,
-    })
+    });
   }
-}
+};
 
 // DELETE /profile
 const deleteProfile = async (req, res) => {
@@ -109,9 +110,9 @@ const deleteProfile = async (req, res) => {
     res.status(400).json({
       success: false,
       message: err.message,
-    })
+    });
   }
-}
+};
 
 // PUT /profile/logo
 const uploadCompanyLogo = async (req, res) => {
@@ -133,12 +134,12 @@ const uploadCompanyLogo = async (req, res) => {
       message: err.message,
     });
   }
-}
+};
 
 export {
   createProfile,
   getProfile,
   updateProfile,
   deleteProfile,
-  uploadCompanyLogo
+  uploadCompanyLogo,
 };

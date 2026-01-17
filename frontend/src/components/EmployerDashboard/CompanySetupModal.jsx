@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { X } from "lucide-react";
 import companyService from "../../services/companyService";
 
 const CompanySetupModal = ({ onSuccess }) => {
@@ -32,12 +31,15 @@ const CompanySetupModal = ({ onSuccess }) => {
     setLoading(true);
 
     try {
-      await companyService.createProfile(formData);
-      // Success - call parent to refetch and close modal
-      onSuccess();
+      const response = await companyService.createProfile(formData);
+
+      if (response.success) {
+        // Success - call parent to refetch and close modal
+        onSuccess();
+      }
     } catch (err) {
       // Handle validation errors from backend
-      if (err.message.includes("errors")) {
+      if (err.message && err.message.includes("errors")) {
         try {
           const errorData = JSON.parse(err.message);
           setErrors(errorData.errors || {});
@@ -53,8 +55,17 @@ const CompanySetupModal = ({ onSuccess }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+    <div
+      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+      onClick={(e) => {
+        // Prevent closing modal by clicking outside
+        e.stopPropagation();
+      }}
+    >
+      <div
+        className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="p-6 border-b border-gray-200 flex items-center justify-between sticky top-0 bg-white">
           <div>
             <h2 className="text-xl text-gray-900">
@@ -90,6 +101,7 @@ const CompanySetupModal = ({ onSuccess }) => {
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-chart-1 focus:ring-1 focus:ring-chart-1"
                 required
                 disabled={loading}
+                placeholder="Enter your company name"
               />
               {errors.companyName && (
                 <p className="text-sm text-red-600 mt-1">

@@ -1,26 +1,28 @@
 import CompanyProfile from "../models/CompanyProfile.js";
 import { calculateCompanyCredibility } from "../utils/calculateCompanyCredibility.utils.js";
-import { uploadCompanyLogo, deleteCompanyLogo } from '../utils/companyLogoUploader.utils.js';
+import {
+  uploadCompanyLogo,
+  deleteCompanyLogo,
+} from "../utils/companyLogoUploader.utils.js";
 
 /*
-  ENDPOINTS (/api/v1/company/) 
-    POST /profile 
+  ENDPOINTS (/api/v1/company/)
+    POST /profile
     GET /profile
     PATCH /profile
     DELETE /profile
-    PUT /profile/logo 
+    PUT /profile/logo
 */
 
 class CompanyProfileService {
-
   // POST /profile
   static async createProfile(userId, payload) {
     const exists = await CompanyProfile.findOne({ user: userId });
 
     if (exists) {
-      throw new Error('Company profile already exists.');
+      throw new Error("Company profile already exists.");
     }
-    
+
     const profile = await CompanyProfile.create({ user: userId, ...payload });
 
     profile.credibilityScore = calculateCompanyCredibility(profile);
@@ -34,7 +36,7 @@ class CompanyProfileService {
     const profile = await CompanyProfile.findOne({ user: userId });
 
     if (!profile) {
-      throw new Error('Company profile not found.');
+      return null;
     }
 
     return profile;
@@ -42,19 +44,23 @@ class CompanyProfileService {
 
   // PATCH /profile
   static async updateProfile(userId, payload) {
-    const forbiddenFields = ['user', 'credibilityScore', 'metrics'];
+    const forbiddenFields = ["user", "credibilityScore", "metrics"];
 
-    forbiddenFields.forEach(field => {
+    forbiddenFields.forEach((field) => {
       if (field in payload) {
         delete payload[field];
       }
     });
 
-    const profile = await CompanyProfile.findOneAndUpdate({ user: userId }, { $set: payload }, {new: true });
+    const profile = await CompanyProfile.findOneAndUpdate(
+      { user: userId },
+      { $set: payload },
+      { new: true }
+    );
 
     if (!profile) {
-      throw new Error('Company profile not found.');
-    };
+      throw new Error("Company profile not found.");
+    }
 
     profile.credibilityScore = calculateCompanyCredibility(profile);
     await profile.save();
@@ -67,24 +73,24 @@ class CompanyProfileService {
     const profile = await CompanyProfile.findOne({ user: userId });
 
     if (!profile) {
-      throw new Error('Company profile not found.');
+      throw new Error("Company profile not found.");
     }
 
     await CompanyProfile.deleteOne({ user: userId });
 
-    return { message: 'Company profile deleted successfully. '};
+    return { message: "Company profile deleted successfully. " };
   }
 
   // PUT /profile/logo
   static async uploadLogo(userId, file) {
     if (!file) {
-      throw new Error('Company logo image is required.');
+      throw new Error("Company logo image is required.");
     }
 
     const profile = await CompanyProfile.findOne({ user: userId });
 
-    if(!profile) {
-      throw new Error('Company profile not found.');
+    if (!profile) {
+      throw new Error("Company profile not found.");
     }
 
     // delete old logo if it exists
@@ -95,7 +101,7 @@ class CompanyProfileService {
     // upload new logo
     const uploadedLogo = await uploadCompanyLogo(file.buffer);
 
-    profile.logo = uploadedLogo
+    profile.logo = uploadedLogo;
 
     profile.credibilityScore = calculateCompanyCredibility(profile);
     await profile.save();

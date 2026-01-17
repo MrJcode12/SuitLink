@@ -1,26 +1,87 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Briefcase, Bell } from "lucide-react";
+import useAuth from "../../hooks/useAuth";
+import companyService from "../../services/companyService";
 import ProfileHeader from "../../components/EmployerProfile/ProfileHeader";
 import AboutCompany from "../../components/EmployerProfile/AboutCompany";
 import BenefitsPerks from "../../components/EmployerProfile/BenefitsPerks";
 import ContactInfo from "../../components/EmployerProfile/ContactInfo";
 import IndustryInfo from "../../components/EmployerProfile/IndustryInfo";
 import CompanySize from "../../components/EmployerProfile/CompanySize";
-import Logo from "../../components/Auth/Shared/Logo";
 
 const EmployerProfile = () => {
   const navigate = useNavigate();
+  const { user, loading: authLoading, isEmployer } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [activeTab, setActiveTab] = useState("Profile");
+  const [companyProfile, setCompanyProfile] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  // Check auth and role
+  useEffect(() => {
+    if (!authLoading) {
+      if (!user) {
+        navigate("/login");
+      } else if (!isEmployer) {
+        navigate("/applicant-dashboard");
+      }
+    }
+  }, [user, authLoading, isEmployer, navigate]);
+
+  // Fetch company profile
+  useEffect(() => {
+    if (user && isEmployer) {
+      fetchCompanyProfile();
+    }
+  }, [user, isEmployer]);
+
+  const fetchCompanyProfile = async () => {
+    try {
+      setLoading(true);
+      const response = await companyService.getProfile();
+
+      if (response.success && response.data) {
+        setCompanyProfile(response.data);
+      } else {
+        // No profile exists - redirect to dashboard to complete setup
+        navigate("/employer-dashboard");
+      }
+    } catch (err) {
+      console.error("Failed to fetch company profile:", err);
+      // On error, redirect to dashboard
+      navigate("/employer-dashboard");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleEditToggle = () => {
     setIsEditing(!isEditing);
   };
 
-  const handleViewDashboard = () => {
-    navigate("/dashboard");
-  };
+  if (authLoading || loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-chart-1 mx-auto"></div>
+          <p className="text-gray-600 mt-4">Loading profile...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!companyProfile) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <p className="text-gray-600">
+            No company profile found. Redirecting...
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -28,26 +89,24 @@ const EmployerProfile = () => {
       <header className="bg-white border-b border-gray-200 sticky top-0 z-40">
         <div className="px-6 py-4">
           <div className="flex items-center justify-between">
-            <Logo />
+            {/* Logo */}
+            <div
+              className="flex items-center gap-2 cursor-pointer"
+              onClick={() => navigate("/employer-dashboard")}
+            >
+              <Briefcase className="w-6 h-6 text-chart-1" />
+              <span className="text-xl text-gray-900">SuitLink</span>
+            </div>
+
+            {/* Navigation */}
             <nav className="hidden md:flex items-center gap-6">
               <button
-                onClick={() => navigate("/dashboard")}
-                className={`text-sm font-medium pb-1 ${
-                  activeTab === "Dashboard"
-                    ? "text-emerald-600 border-b-2 border-emerald-600"
-                    : "text-gray-600 hover:text-gray-900"
-                } py-1`}
+                onClick={() => navigate("/employer-dashboard")}
+                className="text-sm font-medium text-gray-600 hover:text-gray-900 py-1"
               >
                 Dashboard
               </button>
-              <button
-                onClick={() => setActiveTab("Profile")}
-                className={`text-sm font-medium pb-1 ${
-                  activeTab === "Profile"
-                    ? "text-emerald-600 border-b-2 border-emerald-600"
-                    : "text-gray-600 hover:text-gray-900"
-                } py-1`}
-              >
+              <button className="text-sm font-medium text-chart-1 border-b-2 border-chart-1 py-1">
                 Profile
               </button>
             </nav>
@@ -56,8 +115,8 @@ const EmployerProfile = () => {
               <button className="relative">
                 <Bell className="size-5 text-gray-600 hover:text-gray-900" />
               </button>
-              <div className="w-9 h-9 rounded-full bg-emerald-600 flex items-center justify-center text-white text-sm">
-                TC
+              <div className="w-9 h-9 rounded-full bg-chart-1 flex items-center justify-center text-white text-sm">
+                {companyProfile.companyName?.[0] || "C"}
               </div>
             </div>
           </div>
@@ -66,21 +125,28 @@ const EmployerProfile = () => {
 
       <div className="max-w-5xl mx-auto p-6">
         {/* Profile Header */}
-        <ProfileHeader isEditing={isEditing} onEditToggle={handleEditToggle} />
+        <ProfileHeader
+          companyProfile={companyProfile}
+          isEditing={isEditing}
+          onEditToggle={handleEditToggle}
+        />
 
         {/* Company Info */}
         <div className="grid grid-cols-3 gap-6">
           {/* Main Content */}
           <div className="col-span-2 space-y-6">
-            <AboutCompany isEditing={isEditing} />
+            <AboutCompany
+              companyProfile={companyProfile}
+              isEditing={isEditing}
+            />
             <BenefitsPerks isEditing={isEditing} />
           </div>
 
           {/* Sidebar */}
           <div className="space-y-6">
-            <ContactInfo />
-            <IndustryInfo />
-            <CompanySize />
+            <ContactInfo companyProfile={companyProfile} />
+            <IndustryInfo companyProfile={companyProfile} />
+            <CompanySize companyProfile={companyProfile} />
           </div>
         </div>
       </div>

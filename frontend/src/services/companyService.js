@@ -1,3 +1,6 @@
+// frontend/src/services/companyService.js
+// This file should already exist - verify it has these methods:
+
 import axios from "axios";
 
 const API_BASE_URL = "http://localhost:8888/api/v1/company";

@@ -56,16 +56,22 @@ const EmployerDashboardPage = () => {
       setLoading(true);
       const response = await companyService.getProfile();
 
+      // ✅ FIX: Check for needsSetup flag or null data
       if (response.success) {
-        setCompanyProfile(response.data);
+        if (response.needsSetup || !response.data) {
+          // No profile exists - show setup modal
+          setShowSetupModal(true);
+          setCompanyProfile(null);
+        } else {
+          // Profile exists - use it
+          setCompanyProfile(response.data);
+        }
       }
     } catch (err) {
-      if (err.message.includes("not found")) {
-        // No profile exists - show setup modal
-        setShowSetupModal(true);
-      } else {
-        console.error("Failed to fetch company profile:", err);
-      }
+      console.error("Failed to fetch company profile:", err);
+      // On any error, show setup modal
+      setShowSetupModal(true);
+      setCompanyProfile(null);
     } finally {
       setLoading(false);
     }
@@ -85,14 +91,26 @@ const EmployerDashboardPage = () => {
 
   const handleSetupSuccess = async () => {
     setShowSetupModal(false);
+    // ✅ FIX: Refetch profile after successful setup
     await fetchCompanyProfile();
   };
 
   const handlePostJob = () => {
+    // ✅ FIX: Only allow job posting if profile exists
+    if (!companyProfile) {
+      alert("Please complete your company profile first");
+      setShowSetupModal(true);
+      return;
+    }
     navigate("/employer/post-job");
   };
 
   const handleViewProfile = () => {
+    if (!companyProfile) {
+      alert("Please complete your company profile first");
+      setShowSetupModal(true);
+      return;
+    }
     navigate("/employer-profile");
   };
 
@@ -125,7 +143,10 @@ const EmployerDashboardPage = () => {
 
   return (
     <>
-      {showSetupModal && <CompanySetupModal onSuccess={handleSetupSuccess} />}
+      {/* ✅ FIX: Show modal if no profile OR showSetupModal is true */}
+      {(showSetupModal || !companyProfile) && (
+        <CompanySetupModal onSuccess={handleSetupSuccess} />
+      )}
 
       <div className="min-h-screen bg-gray-50">
         {/* Header */}
