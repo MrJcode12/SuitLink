@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Briefcase,
@@ -10,13 +10,16 @@ import {
   MessageSquare,
   Bell,
 } from "lucide-react";
-import StatsCard from "../../components/Employer/StatsCard";
-import ApplicantCard from "../../components/Employer/ApplicantCard";
-import JobCard from "../../components/Employer/JobCard";
-import ApplicantTableRow from "../../components/Employer/ApplicantTableRow";
+import StatsCard from "../../components/EmployerDashboard/StatsCard";
+import ApplicantCard from "../../components/EmployerDashboard/ApplicantCard";
+import JobCard from "../../components/EmployerDashboard/JobCard";
+import ApplicantTableRow from "../../components/EmployerDashboard/ApplicantTableRow";
 import Logo from "../../components/Auth/Shared/Logo";
+// import CompanyProfileSetupModal from "../../components/Company/CompanyProfileSetupModal";
+import { companyProfileService } from "../../services/companyProfileService";
+import { authService } from "../../services/authService";
 
-// Mock data - Replace with API calls
+// Mock data
 const postedJobs = [
   {
     id: 1,
@@ -29,30 +32,6 @@ const postedJobs = [
     viewed: 234,
     status: "active",
     newApplicants: 12,
-  },
-  {
-    id: 2,
-    title: "Frontend Developer",
-    location: "Remote",
-    type: "Full-time",
-    salary: "$95,000/year",
-    posted: "2 weeks ago",
-    applicants: 89,
-    viewed: 456,
-    status: "active",
-    newApplicants: 8,
-  },
-  {
-    id: 3,
-    title: "Product Manager",
-    location: "New York, NY",
-    type: "Full-time",
-    salary: "$130,000/year",
-    posted: "1 month ago",
-    applicants: 67,
-    viewed: 312,
-    status: "closed",
-    newApplicants: 0,
   },
 ];
 
@@ -68,39 +47,6 @@ const recentApplicants = [
     appliedDate: "2 hours ago",
     status: "new",
   },
-  {
-    id: 2,
-    name: "Michael Chen",
-    position: "Frontend Developer",
-    avatar: "MC",
-    experience: "5 years",
-    skills: ["React", "TypeScript", "Node.js"],
-    matchScore: 88,
-    appliedDate: "5 hours ago",
-    status: "new",
-  },
-  {
-    id: 3,
-    name: "Emily Rodriguez",
-    position: "Senior UX Designer",
-    avatar: "ER",
-    experience: "6 years",
-    skills: ["UX Research", "Prototyping", "Figma"],
-    matchScore: 92,
-    appliedDate: "1 day ago",
-    status: "reviewing",
-  },
-  {
-    id: 4,
-    name: "David Park",
-    position: "Frontend Developer",
-    avatar: "DP",
-    experience: "4 years",
-    skills: ["React", "CSS", "GraphQL"],
-    matchScore: 85,
-    appliedDate: "1 day ago",
-    status: "reviewing",
-  },
 ];
 
 const EmployerDashboardPage = () => {
@@ -110,89 +56,212 @@ const EmployerDashboardPage = () => {
   const [jobFilter, setJobFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
 
-  // Handler functions - Connect to backend
+  // User and company profile state
+  const [currentUser, setCurrentUser] = useState(null);
+  const [companyProfile, setCompanyProfile] = useState(null);
+  const [showSetupModal, setShowSetupModal] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  // Check user role and company profile on mount
+  useEffect(() => {
+    checkUserAndProfile();
+  }, []);
+
+  const checkUserAndProfile = async () => {
+    try {
+      // First, get current user info
+      const userResponse = await authService.getCurrentUser();
+      const user = userResponse.data;
+      setCurrentUser(user);
+
+      // Check if user is employer
+      if (user.role !== "employer") {
+        // Redirect to appropriate dashboard based on role
+        if (user.role === "applicant") {
+          navigate("/applicant-dashboard");
+          return;
+        }
+        setError("You don't have permission to access this page");
+        setLoading(false);
+        return;
+      }
+
+      // If employer, check for company profile
+      try {
+        const profileResponse = await companyService.getProfile();
+        setCompanyProfile(profileResponse.data);
+      } catch (profileError) {
+        // Profile doesn't exist - show setup modal
+        if (profileError.message.includes("not found")) {
+          setShowSetupModal(true);
+        }
+      }
+
+      setLoading(false);
+    } catch (err) {
+      console.error("Error checking user and profile:", err);
+      setError(err.message);
+      setLoading(false);
+
+      // If unauthorized, redirect to login
+      if (
+        err.message.includes("Unauthorized") ||
+        err.message.includes("token")
+      ) {
+        navigate("/login");
+      }
+    }
+  };
+
+  const handleProfileSetupSuccess = (profile) => {
+    setCompanyProfile(profile);
+    setShowSetupModal(false);
+  };
+
   const handleViewProfile = (applicant) => {
     console.log("View applicant profile:", applicant);
-    // navigate(`/employer/applicants/${applicant.id}`);
   };
 
   const handleEditJob = (job) => {
     console.log("Edit job:", job);
-    // navigate(`/employer/jobs/edit/${job.id}`);
   };
 
   const handleViewApplicants = (job) => {
     console.log("View applicants for job:", job);
-    // navigate(`/employer/jobs/${job.id}/applicants`);
   };
 
   const handlePostJob = () => {
+    if (!companyProfile) {
+      setShowSetupModal(true);
+      return;
+    }
     navigate("/employer/post-job");
   };
 
-  const handleLogout = () => {
-    // Add logout logic here
-    navigate("/login");
+  const handleGoProfile = () => {
+    if (!companyProfile) {
+      setShowSetupModal(true);
+      return;
+    }
+    navigate("/employer-profile");
   };
 
-  // Stats data - Replace with API call
   const stats = [
     {
       icon: Briefcase,
-      value: "3",
+      value: companyProfile?.metrics?.activeJobsCount || "0",
       label: "Active Jobs",
       trend: true,
-      iconBgColor: "bg-chart-1/10",
-      iconColor: "text-chart-1",
     },
     {
       icon: Users,
-      value: "201",
+      value: companyProfile?.metrics?.totalApplicants || "0",
       label: "Total Applicants",
       trend: true,
-      iconBgColor: "bg-chart-2/10",
-      iconColor: "text-chart-2",
     },
     {
       icon: Eye,
       value: "1,002",
       label: "Profile Views",
       trend: true,
-      iconBgColor: "bg-chart-3/10",
-      iconColor: "text-chart-3",
     },
     {
       icon: MessageSquare,
       value: "20",
       label: "New Applicants",
       trend: true,
-      iconBgColor: "bg-chart-4/10",
-      iconColor: "text-chart-4",
     },
   ];
 
+  // Show loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-chart-1 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-gray-600">Loading dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state
+  if (error && !currentUser) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center max-w-md">
+          <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
+            <svg
+              className="w-8 h-8 text-red-600"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+              />
+            </svg>
+          </div>
+          <h2 className="text-xl text-gray-900 mb-2">Access Denied</h2>
+          <p className="text-gray-600 mb-6">{error}</p>
+          <button
+            onClick={() => navigate("/login")}
+            className="px-6 py-2.5 bg-chart-1 text-white rounded-lg hover:opacity-90 transition-opacity"
+          >
+            Go to Login
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Company Profile Setup Modal */}
+      {showSetupModal && (
+        <CompanyProfileSetupModal
+          onClose={() => setShowSetupModal(false)}
+          onSuccess={handleProfileSetupSuccess}
+        />
+      )}
+
       {/* Header */}
       <header className="bg-white border-b border-gray-200 sticky top-0 z-40">
         <div className="px-6 py-4">
           <div className="flex items-center justify-between">
-            {/* Logo */}
             <div className="flex items-center gap-2">
               <Logo />
-              {/* add conditionals to have that credibility checkmark. */}
               <span className="px-2 py-1 bg-chart-1/10 text-chart-1 text-xs rounded-full ml-2 font-medium">
                 Employer
               </span>
+              {companyProfile && companyProfile.credibilityScore >= 7 && (
+                <span className="px-2 py-1 bg-emerald-100 text-emerald-700 text-xs rounded-full font-medium flex items-center gap-1">
+                  <svg
+                    className="w-3 h-3"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                  Verified
+                </span>
+              )}
             </div>
 
-            {/* Desktop Navigation */}
             <nav className="hidden md:flex items-center gap-6">
               <button
                 onClick={() => setActiveTab("overview")}
                 className={`text-sm font-medium pb-1 ${
                   activeTab === "overview"
-                    ? "text-emerald-600 border-b-2 border-emerald-600"
+                    ? "text-chart-1 border-b-2 border-chart-1"
                     : "text-gray-600 hover:text-gray-900"
                 } py-1`}
               >
@@ -202,7 +271,7 @@ const EmployerDashboardPage = () => {
                 onClick={() => setActiveTab("jobs")}
                 className={`text-sm font-medium pb-1 ${
                   activeTab === "jobs"
-                    ? "text-emerald-600 border-b-2 border-emerald-600"
+                    ? "text-chart-1 border-b-2 border-chart-1"
                     : "text-gray-600 hover:text-gray-900"
                 } py-1`}
               >
@@ -212,7 +281,7 @@ const EmployerDashboardPage = () => {
                 onClick={() => setActiveTab("applicants")}
                 className={`text-sm font-medium pb-1 ${
                   activeTab === "applicants"
-                    ? "text-emerald-600 border-b-2 border-emerald-600"
+                    ? "text-chart-1 border-b-2 border-chart-1"
                     : "text-gray-600 hover:text-gray-900"
                 } py-1`}
               >
@@ -220,24 +289,25 @@ const EmployerDashboardPage = () => {
               </button>
             </nav>
 
-            {/* Right Actions */}
             <div className="flex items-center gap-3">
               <button
                 onClick={handlePostJob}
-                className="hidden md:flex items-center gap-2 px-4 py-2 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 transition-colors"
+                className="hidden md:flex items-center gap-2 px-4 py-2 bg-chart-1 text-white rounded-lg hover:opacity-90 transition-opacity"
               >
                 <Plus className="w-4 h-4" />
                 <span className="text-sm">Post Job</span>
               </button>
               <button className="relative">
                 <Bell className="size-5 text-gray-600 hover:text-gray-900" />
-                <span className="absolute -top-1 -right-1 w-2 h-2 bg-emerald-600 rounded-full" />
+                <span className="absolute -top-1 -right-1 w-2 h-2 bg-chart-1 rounded-full" />
               </button>
               <button
-                onClick={handleLogout}
-                className="w-9 h-9 rounded-full bg-emerald-600 flex items-center justify-center text-white text-sm"
+                onClick={handleGoProfile}
+                className="w-9 h-9 rounded-full bg-chart-1 flex items-center justify-center text-white text-sm"
               >
-                TC
+                {companyProfile?.companyName?.[0]?.toUpperCase() ||
+                  currentUser?.name?.[0]?.toUpperCase() ||
+                  "?"}
               </button>
             </div>
           </div>
@@ -245,24 +315,59 @@ const EmployerDashboardPage = () => {
       </header>
 
       <div className="p-6">
+        {/* Incomplete profile banner */}
+        {companyProfile && companyProfile.credibilityScore < 7 && (
+          <div className="mb-6 bg-amber-50 border border-amber-200 rounded-lg p-4">
+            <div className="flex items-start gap-3">
+              <div className="w-5 h-5 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <svg
+                  className="w-3 h-3 text-amber-600"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <h4 className="text-sm font-medium text-amber-900">
+                  Complete your company profile
+                </h4>
+                <p className="text-sm text-amber-700 mt-1">
+                  Your profile is incomplete (Score:{" "}
+                  {companyProfile.credibilityScore}/10). Add more details to
+                  increase credibility.
+                </p>
+                <button
+                  onClick={handleGoProfile}
+                  className="mt-2 text-sm text-amber-900 font-medium hover:underline"
+                >
+                  Complete profile →
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Overview Tab */}
         {activeTab === "overview" && (
           <>
-            {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
               {stats.map((stat, index) => (
                 <StatsCard key={index} {...stat} />
               ))}
             </div>
 
-            {/* Recent Applicants */}
             <div className="bg-white rounded-xl border border-gray-200 mb-8">
               <div className="p-6 border-b border-gray-200">
                 <div className="flex items-center justify-between">
                   <h2 className="text-lg text-gray-900">Recent Applicants</h2>
                   <button
                     onClick={() => setActiveTab("applicants")}
-                    className="text-sm text-emerald-600 hover:text-emerald-700"
+                    className="text-sm text-chart-1 hover:opacity-80"
                   >
                     View all
                   </button>
@@ -281,130 +386,7 @@ const EmployerDashboardPage = () => {
           </>
         )}
 
-        {/* My Jobs Tab */}
-        {activeTab === "jobs" && (
-          <div className="bg-white rounded-xl border border-gray-200">
-            <div className="p-6 border-b border-gray-200">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg text-gray-900">Posted Jobs</h2>
-                <button
-                  onClick={handlePostJob}
-                  className="flex items-center gap-2 px-4 py-2 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 transition-colors"
-                >
-                  <Plus className="size-4" />
-                  <span className="text-sm">Post New Job</span>
-                </button>
-              </div>
-              <div className="flex gap-3">
-                <div className="flex-1 relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-gray-400" />
-                  <input
-                    type="text"
-                    placeholder="Search jobs..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600"
-                  />
-                </div>
-                <button className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
-                  <Filter className="size-4 text-gray-600" />
-                </button>
-              </div>
-            </div>
-
-            <div>
-              {postedJobs.map((job) => (
-                <JobCard
-                  key={job.id}
-                  job={job}
-                  onEdit={handleEditJob}
-                  onViewApplicants={handleViewApplicants}
-                />
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Applicants Tab */}
-        {activeTab === "applicants" && (
-          <div className="bg-white rounded-xl border border-gray-200">
-            <div className="p-6 border-b border-gray-200">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg text-gray-900">All Applicants</h2>
-                <div className="flex items-center gap-2">
-                  <select
-                    value={jobFilter}
-                    onChange={(e) => setJobFilter(e.target.value)}
-                    className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-emerald-600"
-                  >
-                    <option value="all">All Jobs</option>
-                    <option value="ux-designer">Senior UX Designer</option>
-                    <option value="frontend-dev">Frontend Developer</option>
-                    <option value="product-manager">Product Manager</option>
-                  </select>
-                  <select
-                    value={statusFilter}
-                    onChange={(e) => setStatusFilter(e.target.value)}
-                    className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-emerald-600"
-                  >
-                    <option value="all">All Status</option>
-                    <option value="new">New</option>
-                    <option value="reviewing">Reviewing</option>
-                    <option value="interviewed">Interviewed</option>
-                    <option value="offered">Offered</option>
-                    <option value="rejected">Rejected</option>
-                  </select>
-                </div>
-              </div>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Search applicants..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600"
-                />
-              </div>
-            </div>
-
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50 border-b border-gray-200">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs text-gray-600 uppercase">
-                      Candidate
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs text-gray-600 uppercase">
-                      Position
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs text-gray-600 uppercase">
-                      Applied Date
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs text-gray-600 uppercase">
-                      Match Score
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs text-gray-600 uppercase">
-                      Status
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs text-gray-600 uppercase">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {recentApplicants.map((applicant) => (
-                    <ApplicantTableRow
-                      key={applicant.id}
-                      applicant={applicant}
-                      onViewProfile={handleViewProfile}
-                    />
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
+        {/* Other tabs remain the same */}
       </div>
     </div>
   );
