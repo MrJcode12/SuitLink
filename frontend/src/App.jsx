@@ -9,6 +9,7 @@ import ForgotPassSuccessPage from "./pages/auth/ForgotPassSuccessPage";
 import ResetPassPage from "./pages/auth/ResetPassPage";
 import LandingPage from "./pages/landingPage/LandingPage";
 import EmployerDashboardPage from "./pages/dashboard/EmployerDashboardPage";
+import PostJobPage from "./pages/dashboard/PostJobPage";
 import EmployerProfile from "./pages/profiles/EmployerProfile";
 
 // // Placeholder Dashboard component
@@ -76,6 +77,7 @@ const App = () => {
         {/* Dashboard - Placeholder */}
         {/* Employer's Dashboard */}
         <Route path="/dashboard" element={<EmployerDashboardPage />} />
+        <Route path="/employer/post-job" element={<PostJobPage />} />
         <Route path="/employer-profile" element={<EmployerProfile />} />
 
         {/* Default redirect */}

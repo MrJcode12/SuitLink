@@ -1,4 +1,4 @@
-import ApplicantProfile from "../models/ApplicantProfile.js";
+import ApplicantProfile from '../models/ApplicantProfile.js';
 import cloudinary from '../config/cloudinaryApplicant.config.js';
 
 /* 
@@ -66,6 +66,43 @@ class ApplicantProfileService {
     };
 
     return profile;
+  }
+
+  // PUT /profile/avatar
+  static async uploadAvatar(userId, file) {
+    const profile = await ApplicantProfile.findOne({ user: userId });
+
+    if (!profile) {
+      throw new Error('Applicant profile not found.');
+    }
+
+    
+    if (profile.profileImage?.publicId) {
+      await cloudinary.uploader.destroy(profile.profileImage.publicId);
+    }
+
+    const result = await new Promise((resolve, reject) => {
+      cloudinary.uploader.upload_stream(
+        {
+          folder: 'avatars',
+          transformation: [
+            { width: 300, height: 300, crop: 'fill' },
+          ],
+        },
+        (err, res) => {
+          if (err) reject(err);
+          resolve(res);
+        }
+      ).end(file.buffer);
+    });
+
+    profile.profileImage = {
+      publicId: result.public_id,
+      url: result.secure_url,
+    };
+
+    await profile.save();
+    return profile.profileImage;
   }
 
   // POST /education

@@ -2,11 +2,13 @@ import { Router } from 'express';
 import requireAuth from '../middlewares/auth.middleware.js';
 import requireRole from '../middlewares/requireRole.middleware.js';
 import uploadResumeMiddleware from '../middlewares/uploadResume.middleware.js';
+import uploadAvatarMiddleware from '../middlewares/uploadAvatar.middleware.js';
 
 import {
   createProfile,
   getProfile,
   updateProfile,
+  uploadAvatar,
   createEducation,
   updateEducation,
   deleteEducation,
@@ -24,6 +26,7 @@ applicantProfileRouter.use(requireAuth, requireRole('applicant'));
 applicantProfileRouter.post('/profile', createProfile);
 applicantProfileRouter.get('/profile', getProfile);
 applicantProfileRouter.patch('/profile', updateProfile);
+applicantProfileRouter.put('/profile/avatar', uploadAvatarMiddleware.single('avatar'), uploadAvatar);
 
 applicantProfileRouter.post('/education', createEducation);
 applicantProfileRouter.patch('/education/:educationId', updateEducation);

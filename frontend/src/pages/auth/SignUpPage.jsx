@@ -39,8 +39,7 @@ const SignUpPage = () => {
       await authService.register(
         formData.fullName,
         formData.email,
-        formData.password,
-        formData.userType
+        formData.password
       );
 
       // Registration successful
