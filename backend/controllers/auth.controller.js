@@ -15,6 +15,7 @@ import {
   POST /reset-password
   POST /resend-reset-password
   GET  /me
+  PATCH /update-email
 */
 
 // POST /register
@@ -221,6 +222,33 @@ const getCurrentUser = async (req, res) => {
     });
   }
 };
+const updateEmail = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const { email } = req.body;
+
+    const user = await AuthService.updateEmail(userId, email);
+
+    const responseObj = {
+      success: true,
+      data: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        accStatus: user.accStatus,
+        isEmailVerified: user.isEmailVerified,
+      },
+    };
+
+    res.status(200).json(responseObj);
+  } catch (err) {
+    res.status(400).json({
+      success: false,
+      message: err.message,
+    });
+  }
+};
 
 export {
   register,
@@ -232,4 +260,5 @@ export {
   resetPassword,
   resendResetPassword,
   getCurrentUser,
+  updateEmail,
 };

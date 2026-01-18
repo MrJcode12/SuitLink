@@ -7,34 +7,36 @@ import {
   Mail,
   Phone,
   MapPin,
-  FileText,
   CheckCircle,
 } from "lucide-react";
+import { useProfile } from "../../context/ProfileContext";
+import { authService } from "../../services/authService";
 
 const ProfileForm = ({ profile, onSave, updating }) => {
+  const { user, refreshProfile } = useProfile();
   const [editing, setEditing] = useState(false);
-  const [editingCoverLetter, setEditingCoverLetter] = useState(false);
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
+    email: "",
     phone: "",
     location: "",
   });
-  const [coverLetter, setCoverLetter] = useState("");
   const [errors, setErrors] = useState({});
   const [success, setSuccess] = useState("");
+  const [savingEmail, setSavingEmail] = useState(false);
 
   useEffect(() => {
-    if (profile) {
+    if (profile && user) {
       setFormData({
         firstName: profile.firstName || "",
         lastName: profile.lastName || "",
+        email: user.email || "", // Email comes from user, not profile
         phone: profile.phone || "",
         location: profile.location || "",
       });
-      setCoverLetter(profile.coverLetter || "");
     }
-  }, [profile]);
+  }, [profile, user]);
 
   const handleChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -52,6 +54,11 @@ const ProfileForm = ({ profile, onSave, updating }) => {
     if (!formData.lastName.trim()) {
       newErrors.lastName = "Last name is required";
     }
+    if (!formData.email.trim()) {
+      newErrors.email = "Email is required";
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      newErrors.email = "Invalid email format";
+    }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -60,24 +67,46 @@ const ProfileForm = ({ profile, onSave, updating }) => {
   const handleSavePersonalInfo = async () => {
     if (!validate()) return;
 
-    const result = await onSave(formData);
-    if (result?.success) {
-      setEditing(false);
-      setSuccess("Personal information updated successfully!");
-      setTimeout(() => setSuccess(""), 3000);
-    } else if (result?.error) {
-      setErrors({ general: result.error });
-    }
-  };
+    setErrors({});
+    setSuccess("");
 
-  const handleSaveCoverLetter = async () => {
-    const result = await onSave({ coverLetter });
-    if (result?.success) {
-      setEditingCoverLetter(false);
-      setSuccess("Cover letter updated successfully!");
-      setTimeout(() => setSuccess(""), 3000);
-    } else if (result?.error) {
-      setErrors({ coverLetter: result.error });
+    try {
+      // Separate email update from profile update
+      const emailChanged = formData.email !== user.email;
+      const profileData = {
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        phone: formData.phone,
+        location: formData.location,
+      };
+
+      // Update profile fields (firstName, lastName, phone, location)
+      const profileResult = await onSave(profileData);
+
+      // Update email separately if it changed
+      if (emailChanged) {
+        setSavingEmail(true);
+        const emailResult = await authService.updateEmail(formData.email);
+        setSavingEmail(false);
+
+        if (!emailResult.success) {
+          setErrors({ email: emailResult.message || "Failed to update email" });
+          return;
+        }
+      }
+
+      if (profileResult?.success) {
+        // Refresh both user and profile data
+        await refreshProfile();
+        setEditing(false);
+        setSuccess("Personal information updated successfully!");
+        setTimeout(() => setSuccess(""), 3000);
+      } else if (profileResult?.error) {
+        setErrors({ general: profileResult.error });
+      }
+    } catch (error) {
+      console.error("Error saving personal info:", error);
+      setErrors({ general: error.message || "Failed to save changes" });
     }
   };
 
@@ -85,21 +114,13 @@ const ProfileForm = ({ profile, onSave, updating }) => {
     setFormData({
       firstName: profile?.firstName || "",
       lastName: profile?.lastName || "",
+      email: user?.email || "",
       phone: profile?.phone || "",
       location: profile?.location || "",
     });
     setErrors({});
     setEditing(false);
   };
-
-  const handleCancelCoverLetter = () => {
-    setCoverLetter(profile?.coverLetter || "");
-    setErrors({});
-    setEditingCoverLetter(false);
-  };
-
-  const hasCoverLetter =
-    profile?.coverLetter && profile.coverLetter.trim().length > 0;
 
   return (
     <div className="space-y-6">
@@ -145,7 +166,7 @@ const ProfileForm = ({ profile, onSave, updating }) => {
                   value={formData.firstName}
                   onChange={(e) => handleChange("firstName", e.target.value)}
                   className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:border-chart-1 focus:ring-1 focus:ring-chart-1 bg-input-background text-foreground"
-                  disabled={updating}
+                  disabled={updating || savingEmail}
                 />
                 {errors.firstName && (
                   <p className="text-sm text-destructive mt-1">
@@ -173,7 +194,7 @@ const ProfileForm = ({ profile, onSave, updating }) => {
                   value={formData.lastName}
                   onChange={(e) => handleChange("lastName", e.target.value)}
                   className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:border-chart-1 focus:ring-1 focus:ring-chart-1 bg-input-background text-foreground"
-                  disabled={updating}
+                  disabled={updating || savingEmail}
                 />
                 {errors.lastName && (
                   <p className="text-sm text-destructive mt-1">
@@ -189,16 +210,32 @@ const ProfileForm = ({ profile, onSave, updating }) => {
             )}
           </div>
 
-          {/* Email - Display Only (from User model) */}
+          {/* Email */}
           <div>
-            <label className="block text-sm text-foreground mb-2">Email</label>
-            <div className="flex items-center gap-2 text-foreground">
-              <Mail className="w-4 h-4 text-muted-foreground" />
-              {profile?.user?.email || "Not provided"}
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Email cannot be changed from profile settings
-            </p>
+            <label className="block text-sm text-foreground mb-2">
+              Email <span className="text-destructive">*</span>
+            </label>
+            {editing ? (
+              <>
+                <input
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => handleChange("email", e.target.value)}
+                  className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:border-chart-1 focus:ring-1 focus:ring-chart-1 bg-input-background text-foreground"
+                  disabled={updating || savingEmail}
+                />
+                {errors.email && (
+                  <p className="text-sm text-destructive mt-1">
+                    {errors.email}
+                  </p>
+                )}
+              </>
+            ) : (
+              <div className="flex items-center gap-2 text-foreground">
+                <Mail className="w-4 h-4 text-muted-foreground" />
+                {user?.email || "Not provided"}
+              </div>
+            )}
           </div>
 
           {/* Phone */}
@@ -211,7 +248,7 @@ const ProfileForm = ({ profile, onSave, updating }) => {
                 onChange={(e) => handleChange("phone", e.target.value)}
                 placeholder="+1 234 567 8900"
                 className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:border-chart-1 focus:ring-1 focus:ring-chart-1 bg-input-background text-foreground"
-                disabled={updating}
+                disabled={updating || savingEmail}
               />
             ) : (
               <div className="flex items-center gap-2 text-foreground">
@@ -233,7 +270,7 @@ const ProfileForm = ({ profile, onSave, updating }) => {
                 onChange={(e) => handleChange("location", e.target.value)}
                 placeholder="San Francisco, CA"
                 className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:border-chart-1 focus:ring-1 focus:ring-chart-1 bg-input-background text-foreground"
-                disabled={updating}
+                disabled={updating || savingEmail}
               />
             ) : (
               <div className="flex items-center gap-2 text-foreground">
@@ -248,7 +285,7 @@ const ProfileForm = ({ profile, onSave, updating }) => {
           <div className="flex items-center gap-3 mt-6 pt-6 border-t border-border">
             <button
               onClick={handleCancel}
-              disabled={updating}
+              disabled={updating || savingEmail}
               className="px-6 py-3 border border-border rounded-lg hover:bg-accent transition-colors disabled:opacity-50"
             >
               <X className="w-4 h-4 inline mr-2" />
@@ -256,87 +293,12 @@ const ProfileForm = ({ profile, onSave, updating }) => {
             </button>
             <button
               onClick={handleSavePersonalInfo}
-              disabled={updating}
+              disabled={updating || savingEmail}
               className="px-6 py-3 bg-chart-1 text-white rounded-lg hover:opacity-90 transition-colors disabled:opacity-50"
             >
               <Save className="w-4 h-4 inline mr-2" />
-              {updating ? "Saving..." : "Save Changes"}
+              {updating || savingEmail ? "Saving..." : "Save Changes"}
             </button>
-          </div>
-        )}
-      </div>
-
-      {/* Cover Letter Card */}
-      <div className="bg-card rounded-xl border border-border p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg text-foreground">Cover Letter</h2>
-          {!editingCoverLetter && (
-            <button
-              onClick={() => setEditingCoverLetter(true)}
-              className="flex items-center gap-2 px-4 py-2 border border-border rounded-lg hover:bg-accent transition-colors text-sm"
-            >
-              <Edit2 className="w-4 h-4" />
-              {hasCoverLetter ? "Edit" : "Add"}
-            </button>
-          )}
-        </div>
-
-        {errors.coverLetter && (
-          <div className="mb-4 p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
-            <p className="text-sm text-destructive">{errors.coverLetter}</p>
-          </div>
-        )}
-
-        {editingCoverLetter ? (
-          <div>
-            <textarea
-              value={coverLetter}
-              onChange={(e) => setCoverLetter(e.target.value)}
-              placeholder="Write a compelling cover letter that highlights your experience and why you're a great fit..."
-              rows={12}
-              className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:border-chart-1 focus:ring-1 focus:ring-chart-1 resize-none bg-input-background text-foreground"
-              disabled={updating}
-            />
-            <p className="text-xs text-muted-foreground mt-2">
-              {coverLetter.length} characters
-            </p>
-
-            <div className="flex items-center gap-3 mt-4">
-              <button
-                onClick={handleCancelCoverLetter}
-                disabled={updating}
-                className="px-6 py-3 border border-border rounded-lg hover:bg-accent transition-colors disabled:opacity-50"
-              >
-                <X className="w-4 h-4 inline mr-2" />
-                Cancel
-              </button>
-              <button
-                onClick={handleSaveCoverLetter}
-                disabled={updating}
-                className="px-6 py-3 bg-chart-1 text-white rounded-lg hover:opacity-90 transition-colors disabled:opacity-50"
-              >
-                <Save className="w-4 h-4 inline mr-2" />
-                {updating ? "Saving..." : "Save Cover Letter"}
-              </button>
-            </div>
-          </div>
-        ) : hasCoverLetter ? (
-          <div className="prose prose-sm max-w-none">
-            <p className="text-foreground whitespace-pre-line leading-relaxed">
-              {profile.coverLetter}
-            </p>
-          </div>
-        ) : (
-          <div className="text-center py-8">
-            <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
-              <FileText className="w-8 h-8 text-muted-foreground" />
-            </div>
-            <h3 className="text-sm font-medium text-foreground mb-2">
-              No cover letter added
-            </h3>
-            <p className="text-sm text-muted-foreground">
-              Add a cover letter to strengthen your job applications
-            </p>
           </div>
         )}
       </div>

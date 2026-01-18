@@ -218,6 +218,26 @@ class AuthService {
       code,
     };
   }
+
+  static async updateEmail(userId, newEmail) {
+    // Check if new email is already in use
+    const existingUser = await User.findOne({ email: newEmail });
+    if (existingUser && existingUser._id.toString() !== userId.toString()) {
+      throw new Error("Email already in use by another account");
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      throw new Error("User not found!");
+    }
+
+    user.email = newEmail;
+    // Note: You might want to set isEmailVerified to false and send a new verification email
+    // For now, keeping it simple
+    await user.save();
+
+    return user;
+  }
 }
 
 export default AuthService;

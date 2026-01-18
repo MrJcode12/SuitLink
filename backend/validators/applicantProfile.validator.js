@@ -23,6 +23,12 @@ export const updateApplicantProfileSchema = z.object({
 
       lastName: z.string().trim().min(1).max(100).optional(),
 
+      phone: z.string().trim().max(20).optional(),
+
+      location: z.string().trim().max(200).optional(),
+
+      coverLetter: z.string().trim().max(5000).optional(),
+
       skills: z.array(z.string()).optional(),
     })
     .strict(),

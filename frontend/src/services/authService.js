@@ -44,6 +44,11 @@ export const authService = {
   getCurrentUser: async () => {
     return api.get("/me");
   },
+
+  // Update user email
+  updateEmail: async (newEmail) => {
+    return api.patch("/update-email", { email: newEmail });
+  },
 };
 
 export default authService;

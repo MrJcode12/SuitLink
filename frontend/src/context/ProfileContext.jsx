@@ -1,38 +1,65 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
+import { createContext, useContext, useState, useEffect } from "react";
 import applicantProfileService from "../services/applicantProfileService";
+import { authService } from "../services/authService";
 
-const ProfileContext = createContext(null);
+const ProfileContext = createContext();
 
 export const ProfileProvider = ({ children }) => {
   const [profile, setProfile] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   const fetchProfile = async () => {
     try {
       setLoading(true);
-      const response = await applicantProfileService.getProfile();
-      if (response.success && response.data) {
-        setProfile(response.data);
+      setError(null);
+
+      // Fetch both user and profile data
+      const [userResponse, profileResponse] = await Promise.all([
+        authService.getCurrentUser(),
+        applicantProfileService.getProfile(),
+      ]);
+
+      if (userResponse.success) {
+        setUser(userResponse.data);
       }
-    } catch (error) {
-      console.error("Error fetching profile:", error);
+
+      if (profileResponse.success) {
+        setProfile(profileResponse.data);
+      }
+    } catch (err) {
+      console.error("Error fetching profile data:", err);
+      setError(err.message);
     } finally {
       setLoading(false);
     }
   };
 
-  const refreshProfile = () => {
-    fetchProfile();
+  const refreshProfile = async () => {
+    await fetchProfile();
+  };
+
+  const clearProfile = () => {
+    setProfile(null);
+    setUser(null);
+    setError(null);
   };
 
   useEffect(() => {
-    // Only fetch if user is authenticated - check this in your auth context
     fetchProfile();
   }, []);
 
   return (
     <ProfileContext.Provider
-      value={{ profile, loading, refreshProfile, setProfile }}
+      value={{
+        profile,
+        user,
+        loading,
+        error,
+        refreshProfile,
+        clearProfile,
+      }}
     >
       {children}
     </ProfileContext.Provider>
@@ -46,5 +73,3 @@ export const useProfile = () => {
   }
   return context;
 };
-
-export default ProfileContext;
