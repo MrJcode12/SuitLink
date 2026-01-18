@@ -1,10 +1,12 @@
 import { useState, useRef } from "react";
 import { Upload, User, CheckCircle, AlertCircle } from "lucide-react";
+import { useProfile } from "../../context/ProfileContext";
 
-const AvatarUpload = ({ profile, onUpload, uploading, onUpdate }) => {
+const AvatarUpload = ({ profile, onUpload, uploading }) => {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const fileInputRef = useRef(null);
+  const { refreshProfile } = useProfile();
 
   const handleFileSelect = async (e) => {
     const file = e.target.files?.[0];
@@ -30,10 +32,8 @@ const AvatarUpload = ({ profile, onUpload, uploading, onUpdate }) => {
     if (result?.success) {
       setSuccess("Profile photo updated successfully!");
       setTimeout(() => setSuccess(""), 3000);
-      // Trigger profile refresh
-      if (onUpdate) {
-        await onUpdate();
-      }
+      // Refresh profile context to update navbar
+      await refreshProfile();
     } else {
       setError(result?.error || "Failed to upload photo");
     }
@@ -55,9 +55,9 @@ const AvatarUpload = ({ profile, onUpload, uploading, onUpdate }) => {
 
       {/* Success Message */}
       {success && (
-        <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2">
-          <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
-          <p className="text-sm text-green-700">{success}</p>
+        <div className="mb-4 p-3 bg-emerald-50 border border-emerald-200 rounded-lg flex items-center gap-2">
+          <CheckCircle className="w-5 h-5 text-emerald-600 flex-shrink-0" />
+          <p className="text-sm text-emerald-700">{success}</p>
         </div>
       )}
 
@@ -71,7 +71,7 @@ const AvatarUpload = ({ profile, onUpload, uploading, onUpdate }) => {
 
       <div className="flex items-center gap-6">
         {/* Avatar Display */}
-        <div className="w-24 h-24 rounded-full overflow-hidden bg-chart-1/10 flex items-center justify-center flex-shrink-0">
+        <div className="w-24 h-24 rounded-full overflow-hidden bg-chart-1/10 flex items-center justify-center flex-shrink-0 border-2 border-border">
           {profileImageUrl ? (
             <img
               src={profileImageUrl}

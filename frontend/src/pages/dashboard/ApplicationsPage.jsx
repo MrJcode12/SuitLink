@@ -12,6 +12,7 @@ import useAuth from "../../hooks/useAuth";
 import applicationsApiService from "../../services/applicationsService";
 import applicantService from "../../services/applicantService";
 import ApplicantProfileSetupModal from "../../components/ApplicantProfile/ApplicantProfileSetupModal";
+import ApplicantNavbar from "../../components/ApplicantProfile/ApplicantNavbar";
 
 const ApplicationsPage = () => {
   const navigate = useNavigate();
@@ -164,49 +165,7 @@ const ApplicationsPage = () => {
       <div className="min-h-screen bg-background">
         {/* Header */}
         <header className="bg-card border-b border-border sticky top-0 z-40">
-          <div className="px-6 py-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Briefcase className="size-7 text-chart-1" />
-                <span className="text-xl text-foreground">SuitLink</span>
-              </div>
-
-              <nav className="hidden md:flex items-center gap-6">
-                <button
-                  onClick={() => navigate("/applicant-dashboard")}
-                  className={`text-sm font-medium pb-1 ${
-                    isActiveRoute("/applicant-dashboard")
-                      ? "text-chart-1 border-b-2 border-chart-1"
-                      : "text-muted-foreground hover:text-foreground"
-                  } py-1`}
-                >
-                  Find Jobs
-                </button>
-                <button
-                  onClick={() => navigate("/applications")}
-                  className={`text-sm font-medium pb-1 ${
-                    isActiveRoute("/applications")
-                      ? "text-chart-1 border-b-2 border-chart-1"
-                      : "text-muted-foreground hover:text-foreground"
-                  } py-1`}
-                >
-                  Applications
-                </button>
-              </nav>
-
-              <div className="flex items-center gap-4">
-                <button className="relative">
-                  <Bell className="size-5 text-muted-foreground hover:text-foreground" />
-                </button>
-                <button
-                  onClick={() => navigate("/applicant-profile")}
-                  className="w-9 h-9 rounded-full bg-chart-1 flex items-center justify-center text-white text-sm"
-                >
-                  {user?.name?.[0]?.toUpperCase() || "A"}
-                </button>
-              </div>
-            </div>
-          </div>
+          <ApplicantNavbar />
         </header>
 
         {/* Main Content */}

@@ -1,5 +1,6 @@
 import React from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { ProfileProvider } from "./context/ProfileContext";
 import LoginPage from "./pages/auth/LoginPage";
 import SignUpPage from "./pages/auth/SignUpPage";
 import VerifyEmailPage from "./pages/auth/VerifyEmailPage";
@@ -13,7 +14,7 @@ import PostJobPage from "./pages/dashboard/PostJobPage";
 import JobListingsPage from "./pages/jobs/JobListingsPage";
 import JobDetailsPage from "./pages/jobs/JobDetailsPage";
 import EmployerProfile from "./pages/profiles/EmployerProfile";
-import ApplicantProfilePage from "./pages/profiles/ApplicantProfilePage"; // NEW
+import ApplicantProfilePage from "./pages/profiles/ApplicantProfilePage";
 import ApplicationsPage from "./pages/dashboard/ApplicationsPage";
 import ProtectedRoute from "./routes/ProtectedRoute";
 import useAuth from "./hooks/useAuth";
@@ -39,108 +40,110 @@ const NotFound = () => {
 const App = () => {
   return (
     <BrowserRouter>
-      <Routes>
-        {/* Public Auth Routes */}
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/signup" element={<SignUpPage />} />
-        <Route path="/verify-email" element={<VerifyEmailPage />} />
-        <Route
-          path="/verify-email-success"
-          element={<VerifyEmailSuccessPage />}
-        />
-        <Route path="/forgot-password" element={<ForgotPassPage />} />
-        <Route path="/reset-password" element={<ResetPassPage />} />
-        <Route
-          path="/forgot-password-success"
-          element={<ForgotPassSuccessPage />}
-        />
+      <ProfileProvider>
+        <Routes>
+          {/* Public Auth Routes */}
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/signup" element={<SignUpPage />} />
+          <Route path="/verify-email" element={<VerifyEmailPage />} />
+          <Route
+            path="/verify-email-success"
+            element={<VerifyEmailSuccessPage />}
+          />
+          <Route path="/forgot-password" element={<ForgotPassPage />} />
+          <Route path="/reset-password" element={<ResetPassPage />} />
+          <Route
+            path="/forgot-password-success"
+            element={<ForgotPassSuccessPage />}
+          />
 
-        {/* Job Browsing - Protected */}
-        <Route
-          path="/jobs"
-          element={
-            <ProtectedRoute>
-              <JobListingsPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/jobs/:jobId"
-          element={
-            <ProtectedRoute>
-              <JobDetailsPage />
-            </ProtectedRoute>
-          }
-        />
+          {/* Job Browsing - Protected */}
+          <Route
+            path="/jobs"
+            element={
+              <ProtectedRoute>
+                <JobListingsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/jobs/:jobId"
+            element={
+              <ProtectedRoute>
+                <JobDetailsPage />
+              </ProtectedRoute>
+            }
+          />
 
-        {/* Employer Protected Routes */}
-        <Route
-          path="/employer-dashboard"
-          element={
-            <ProtectedRoute requireEmployer={true}>
-              <EmployerDashboardPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/employer/post-job"
-          element={
-            <ProtectedRoute requireEmployer={true}>
-              <PostJobPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/employer-profile"
-          element={
-            <ProtectedRoute requireEmployer={true}>
-              <EmployerProfile />
-            </ProtectedRoute>
-          }
-        />
+          {/* Employer Protected Routes */}
+          <Route
+            path="/employer-dashboard"
+            element={
+              <ProtectedRoute requireEmployer={true}>
+                <EmployerDashboardPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/employer/post-job"
+            element={
+              <ProtectedRoute requireEmployer={true}>
+                <PostJobPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/employer-profile"
+            element={
+              <ProtectedRoute requireEmployer={true}>
+                <EmployerProfile />
+              </ProtectedRoute>
+            }
+          />
 
-        {/* Applicant Protected Routes */}
-        <Route
-          path="/applicant-dashboard"
-          element={
-            <ProtectedRoute requireApplicant={true}>
-              <JobSeekerDashboardPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/applications"
-          element={
-            <ProtectedRoute requireApplicant={true}>
-              <ApplicationsPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/applicant-profile"
-          element={
-            <ProtectedRoute requireApplicant={true}>
-              <ApplicantProfilePage />
-            </ProtectedRoute>
-          }
-        />
+          {/* Applicant Protected Routes */}
+          <Route
+            path="/applicant-dashboard"
+            element={
+              <ProtectedRoute requireApplicant={true}>
+                <JobSeekerDashboardPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/applications"
+            element={
+              <ProtectedRoute requireApplicant={true}>
+                <ApplicationsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/applicant-profile"
+            element={
+              <ProtectedRoute requireApplicant={true}>
+                <ApplicantProfilePage />
+              </ProtectedRoute>
+            }
+          />
 
-        {/* Smart /dashboard redirect based on role */}
-        <Route
-          path="/dashboard"
-          element={
-            <ProtectedRoute>
-              <SmartDashboardRedirect />
-            </ProtectedRoute>
-          }
-        />
+          {/* Smart /dashboard redirect based on role */}
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute>
+                <SmartDashboardRedirect />
+              </ProtectedRoute>
+            }
+          />
 
-        {/* Landing Page */}
-        <Route path="/" element={<LandingPage />} />
+          {/* Landing Page */}
+          <Route path="/" element={<LandingPage />} />
 
-        {/* 404 - Catch all */}
-        <Route path="*" element={<NotFound />} />
-      </Routes>
+          {/* 404 - Catch all */}
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </ProfileProvider>
     </BrowserRouter>
   );
 };

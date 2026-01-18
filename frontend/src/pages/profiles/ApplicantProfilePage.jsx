@@ -14,6 +14,7 @@ import ExperienceManager from "../../components/ApplicantProfile/ExperienceManag
 import SkillsManager from "../../components/ApplicantProfile/SkillsManager";
 import ApplicantProfileSetupModal from "../../components/ApplicantProfile/ApplicantProfileSetupModal";
 import Logo from "../../components/Auth/Shared/Logo";
+import ApplicantNavbar from "../../components/ApplicantProfile/ApplicantNavbar";
 
 const ApplicantProfilePage = () => {
   const navigate = useNavigate();
@@ -98,60 +99,7 @@ const ApplicantProfilePage = () => {
       <div className="min-h-screen bg-background">
         {/* Header */}
         <header className="bg-card border-b border-border sticky top-0 z-40">
-          <div className="px-6 py-4">
-            <div className="flex items-center justify-between">
-              <Logo />
-
-              {/* Desktop Navigation */}
-              <nav className="hidden md:flex items-center gap-6">
-                <button
-                  onClick={() => navigate("/applicant-dashboard")}
-                  className={`text-sm pb-1 ${
-                    isActiveRoute("/applicant-dashboard")
-                      ? "text-chart-1 border-b-2 border-chart-1"
-                      : "text-muted-foreground hover:text-foreground"
-                  } py-1`}
-                >
-                  Find Jobs
-                </button>
-                <button
-                  onClick={() => navigate("/applications")}
-                  className={`text-sm pb-1 ${
-                    isActiveRoute("/applications")
-                      ? "text-chart-1 border-b-2 border-chart-1"
-                      : "text-muted-foreground hover:text-foreground"
-                  } py-1`}
-                >
-                  Applications
-                </button>
-                <button
-                  onClick={() => navigate("/applicant-profile")}
-                  className={`text-sm pb-1 ${
-                    isActiveRoute("/applicant-profile")
-                      ? "text-chart-1 border-b-2 border-chart-1"
-                      : "text-muted-foreground hover:text-foreground"
-                  } py-1`}
-                >
-                  Profile
-                </button>
-              </nav>
-
-              {/* Right Actions */}
-              <div className="flex items-center gap-4">
-                <button className="relative">
-                  <Bell className="size-5 text-muted-foreground hover:text-foreground" />
-                </button>
-                <button
-                  onClick={() => navigate("/applicant-profile")}
-                  className="w-9 h-9 rounded-full bg-chart-1 flex items-center justify-center text-white text-sm"
-                >
-                  {profile?.firstName?.[0]?.toUpperCase() ||
-                    user?.name?.[0]?.toUpperCase() ||
-                    "A"}
-                </button>
-              </div>
-            </div>
-          </div>
+          <ApplicantNavbar />
         </header>
 
         {/* Main Content */}
