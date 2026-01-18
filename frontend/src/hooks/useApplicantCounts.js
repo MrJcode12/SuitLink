@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
-import applicantProfileService from "../services/applicantProfileService";
+import employerApplicationsService from "../services/applicationEmployerSevice";
 
 /**
  * Custom hook to fetch applicant counts for multiple jobs
- * Fetches counts in parallel with concurrency control
+ * Fetches counts in parallel with graceful error handling
  */
 const useApplicantCounts = (jobs = []) => {
   const [counts, setCounts] = useState({});
@@ -24,7 +24,8 @@ const useApplicantCounts = (jobs = []) => {
       // Fetch applicant counts for all jobs in parallel
       const countPromises = jobs.map(async (job) => {
         try {
-          const response = await applicantProfileService.getApplicantsByJob(
+          // ✅ FIXED: Use the correct service method
+          const response = await employerApplicationsService.getApplicantsByJob(
             job._id
           );
           return {

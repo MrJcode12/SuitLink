@@ -25,18 +25,15 @@ const EmployerDashboardPage = () => {
   const [loading, setLoading] = useState(true);
   const [activeView, setActiveView] = useState("overview");
 
-  // Fetch applicant counts for all jobs
+  // ✅ Fetch applicant counts for all jobs
   const { counts: applicantCounts, loading: countsLoading } = useApplicantCounts(
     jobs
   );
 
   useEffect(() => {
     if (!authLoading) {
-      if (!user) {
-        navigate("/login");
-      } else if (!isEmployer) {
-        navigate("/applicant-dashboard");
-      }
+      if (!user) navigate("/login");
+      else if (!isEmployer) navigate("/applicant-dashboard");
     }
   }, [user, authLoading, isEmployer, navigate]);
 

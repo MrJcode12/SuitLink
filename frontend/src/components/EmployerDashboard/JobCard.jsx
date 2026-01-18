@@ -9,7 +9,7 @@ import {
   XCircle,
 } from "lucide-react";
 
-const JobCard = ({ job, onEdit, onClose, onReopen, onViewApplicants }) => {
+const JobCard = ({ job, applicantCount, countsLoading, onEdit, onClose, onReopen, onViewApplicants }) => {
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     const now = new Date();
@@ -50,6 +50,11 @@ const JobCard = ({ job, onEdit, onClose, onReopen, onViewApplicants }) => {
     contract: "Contract",
     internship: "Internship",
   };
+
+  // ✅ FIXED: Display applicant count correctly with proper loading state
+  const displayCount = countsLoading
+    ? "..."
+    : (applicantCount !== undefined ? applicantCount : 0);
 
   return (
     <div className="p-6 hover:bg-gray-50 transition-colors border-b border-gray-200 last:border-b-0">
@@ -104,8 +109,10 @@ const JobCard = ({ job, onEdit, onClose, onReopen, onViewApplicants }) => {
           <div className="flex items-center gap-6 text-sm">
             <div className="flex items-center gap-2">
               <Users className="size-4 text-gray-500" />
-              <span className="text-gray-900">{job.applicantsCount || 0}</span>
-              <span className="text-gray-600">applicants</span>
+              <span className="text-gray-900 font-medium">{displayCount}</span>
+              <span className="text-gray-600">
+                {displayCount === 1 ? "applicant" : "applicants"}
+              </span>
             </div>
             <div className="flex items-center gap-2">
               <Eye className="size-4 text-gray-500" />
