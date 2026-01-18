@@ -1,11 +1,8 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import {
   Plus,
-  Bell,
   Users,
-  Eye,
-  MessageSquare,
   Briefcase as BriefcaseIcon,
 } from "lucide-react";
 import useAuth from "../../hooks/useAuth";
@@ -15,13 +12,13 @@ import CompanySetupModal from "../../components/EmployerDashboard/CompanySetupMo
 import JobCard from "../../components/EmployerDashboard/JobCard";
 import StatsCard from "../../components/EmployerDashboard/StatsCard";
 import EditJobModal from "../../components/EmployerDashboard/EditJobModal";
-import Logo from "../../components/Auth/Shared/Logo";
 import EmployerNavbar from "../../components/EmployerDashboard/EmployerNavBar";
-
+import NotificationsBell from "../../components/Notifications/NotificationsBell";
 
 const EmployerDashboardPage = () => {
   const navigate = useNavigate();
-  const { user, loading: authLoading, isEmployer, logout } = useAuth();
+  const location = useLocation();
+  const { user, loading: authLoading, isEmployer } = useAuth();
 
   const [companyProfile, setCompanyProfile] = useState(null);
   const [jobs, setJobs] = useState([]);
@@ -29,9 +26,8 @@ const EmployerDashboardPage = () => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedJob, setSelectedJob] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("overview");
+  const [activeView, setActiveView] = useState("overview");
 
-  // Check auth and role
   useEffect(() => {
     if (!authLoading) {
       if (!user) {
@@ -42,19 +38,25 @@ const EmployerDashboardPage = () => {
     }
   }, [user, authLoading, isEmployer, navigate]);
 
-  // Fetch company profile
   useEffect(() => {
     if (user && isEmployer) {
       fetchCompanyProfile();
     }
   }, [user, isEmployer]);
 
-  // Fetch jobs when profile exists
   useEffect(() => {
     if (companyProfile) {
       fetchJobs();
     }
-  }, [companyProfile]);
+  }, [companyProfile, activeView]);
+
+  useEffect(() => {
+    if (location.pathname === "/employer/my-jobs") {
+      setActiveView("my-jobs");
+    } else if (location.pathname === "/employer-dashboard") {
+      setActiveView("overview");
+    }
+  }, [location.pathname]);
 
   const fetchCompanyProfile = async () => {
     try {
@@ -87,6 +89,7 @@ const EmployerDashboardPage = () => {
       }
     } catch (err) {
       console.error("Failed to fetch jobs:", err);
+      setJobs([]);
     }
   };
 
@@ -104,15 +107,6 @@ const EmployerDashboardPage = () => {
     navigate("/employer/post-job");
   };
 
-  const handleViewProfile = () => {
-    if (!companyProfile) {
-      alert("Please complete your company profile first");
-      setShowSetupModal(true);
-      return;
-    }
-    navigate("/employer-profile");
-  };
-
   const handleEditJob = (job) => {
     setSelectedJob(job);
     setShowEditModal(true);
@@ -128,8 +122,7 @@ const EmployerDashboardPage = () => {
 
       if (response.success) {
         alert("Job closed successfully!");
-        await fetchJobs();
-        await fetchCompanyProfile(); // Refresh metrics
+        await Promise.all([fetchJobs(), fetchCompanyProfile()]);
       }
     } catch (error) {
       console.error("Error closing job:", error);
@@ -147,8 +140,7 @@ const EmployerDashboardPage = () => {
 
       if (response.success) {
         alert("Job reopened successfully!");
-        await fetchJobs();
-        await fetchCompanyProfile(); // Refresh metrics
+        await Promise.all([fetchJobs(), fetchCompanyProfile()]);
       }
     } catch (error) {
       console.error("Error reopening job:", error);
@@ -161,11 +153,9 @@ const EmployerDashboardPage = () => {
   };
 
   const handleEditSuccess = async () => {
-    await fetchJobs();
-    await fetchCompanyProfile();
+    await Promise.all([fetchJobs(), fetchCompanyProfile()]);
   };
 
-  // Calculate stats from jobs and profile metrics
   const activeJobs = companyProfile?.metrics?.activeJobsCount || 0;
   const totalJobs = companyProfile?.metrics?.jobPostsCount || 0;
   const totalApplicants = companyProfile?.metrics?.totalApplicants || 0;
@@ -200,26 +190,26 @@ const EmployerDashboardPage = () => {
       )}
 
       <div className="min-h-screen bg-gray-50">
-        {/* Navbar */}
         <header className="sticky top-0 z-40">
           <EmployerNavbar
             companyProfile={companyProfile}
             onPostJob={handlePostJob}
+            bellSlot={<NotificationsBell />}
           />
         </header>
 
         <main className="max-w-7xl mx-auto p-6">
-          {/* Page Header */}
           <div className="mb-6">
             <h1 className="text-2xl text-gray-900 font-medium mb-1">
-              Employer Dashboard
+              {activeView === "my-jobs" ? "My Jobs" : "Employer Dashboard"}
             </h1>
             <p className="text-gray-600">
-              Manage your job postings and track incoming applicants
+              {activeView === "my-jobs"
+                ? "Manage all jobs you've posted"
+                : "Manage your job postings and track incoming applicants"}
             </p>
           </div>
 
-          {/* Stats Row */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
             <StatsCard
               icon={BriefcaseIcon}
@@ -240,15 +230,12 @@ const EmployerDashboardPage = () => {
             />
           </div>
 
-          {/* Main Layout */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* LEFT: Main Content */}
             <div className="lg:col-span-2 space-y-6">
-              {/* Posted Jobs */}
               <div className="bg-white rounded-2xl border border-gray-200 shadow-sm">
                 <div className="p-6 border-b border-gray-200 flex items-center justify-between">
                   <h2 className="text-lg font-medium text-gray-900">
-                    Posted Jobs
+                    {activeView === "my-jobs" ? "My Jobs" : "Posted Jobs"}
                   </h2>
                   <button
                     onClick={handlePostJob}
@@ -292,15 +279,13 @@ const EmployerDashboardPage = () => {
               </div>
             </div>
 
-            {/* RIGHT: Sidebar */}
             <div className="lg:col-span-1 space-y-6">
-              {/* Credibility Score */}
               <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
                 <h3 className="text-sm text-gray-600 mb-1">
                   Company Credibility Score
                 </h3>
                 <p className="text-2xl font-medium text-gray-900">
-                  {companyProfile.credibilityScore} / 10
+                  {companyProfile?.credibilityScore || 0} / 10
                 </p>
 
                 {hasCredibilityBadge && (
@@ -310,7 +295,6 @@ const EmployerDashboardPage = () => {
                 )}
               </div>
 
-              {/* Recent Applicants */}
               <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
                 <h3 className="text-lg font-medium text-gray-900 mb-4">
                   Recent Applicants
@@ -342,8 +326,6 @@ const EmployerDashboardPage = () => {
       </div>
     </>
   );
-
-
 };
 
 export default EmployerDashboardPage;

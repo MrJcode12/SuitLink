@@ -66,30 +66,30 @@ const EmployerNavbar = ({
           <Logo to="/employer-dashboard"/>
 
           <nav className="hidden md:flex items-center gap-6">
-            <button
-              type="button"
-              onClick={() => navigate("/employer-dashboard")}
-              className={navItemClass("/employer-dashboard")}
-            >
-              Overview
-            </button>
+  <button
+    type="button"
+    onClick={() => navigate("/employer-dashboard")}
+    className={navItemClass("/employer-dashboard")}
+  >
+    Overview
+  </button>
 
-            <button
-              type="button"
-              onClick={() => navigate("/jobs")}
-              className={navItemClass("")}
-            >
-              My Jobs
-            </button>
+  <button
+    type="button"
+    onClick={() => navigate("/employer/my-jobs")}
+    className={navItemClass("/employer/my-jobs")}
+  >
+    My Jobs
+  </button>
 
-            <button
-              type="button"
-              onClick={() => navigate("/employer/applicants")}
-              className={navItemClass("/employer/applicants")}
-            >
-              Applicants
-            </button>
-          </nav>
+  <button
+    type="button"
+    onClick={() => navigate("/employer/applicants")}
+    className={navItemClass("/employer/applicants")}
+  >
+    Applicants
+  </button>
+</nav>
 
           <div className="flex items-center gap-3">
             <button

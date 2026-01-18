@@ -99,6 +99,14 @@ const App = () => {
               </ProtectedRoute>
             }
           />
+          <Route
+  path="/employer/my-jobs"
+  element={
+    <ProtectedRoute requireEmployer>
+      <EmployerDashboardPage />
+    </ProtectedRoute>
+  }
+/>
 
           {/* Applicant Protected Routes */}
           <Route
