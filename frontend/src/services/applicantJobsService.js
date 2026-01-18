@@ -1,6 +1,6 @@
 import jobsApi from "../api/jobsAxiosConfig";
 
-// GET /api/v1/jobs - Browse all jobs
+// GET /api/v1/jobs - Browse all jobs with search support
 const getJobs = (params = {}) => {
   const {
     page = 1,
@@ -17,7 +17,9 @@ const getJobs = (params = {}) => {
     limit: limit.toString(),
   });
 
+  // Add search parameter for job title or company name
   if (search) queryParams.append("search", search);
+
   if (employmentType) queryParams.append("employmentType", employmentType);
   if (remote !== "") queryParams.append("remote", remote);
   if (salaryMin) queryParams.append("salaryMin", salaryMin);

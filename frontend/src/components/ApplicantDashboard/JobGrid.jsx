@@ -5,7 +5,8 @@ const JobGrid = ({
   jobs,
   loading,
   error,
-  appliedJobIds = new Set(),
+  savedJobs,
+  onSaveToggle,
   onJobClick,
 }) => {
   if (loading) {
@@ -49,7 +50,8 @@ const JobGrid = ({
         <JobCard
           key={job._id}
           job={job}
-          isApplied={appliedJobIds.has(job._id)}
+          isSaved={savedJobs.includes(job._id)}
+          onSaveToggle={onSaveToggle}
           onClick={onJobClick}
         />
       ))}

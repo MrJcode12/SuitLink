@@ -1,5 +1,6 @@
 import applicationsApi from "../api/applicationConfig";
 
+// POST /api/v1/applications - Apply to a job
 const applyToJob = (jobPostingId, resumeId, coverLetter = "") => {
   return applicationsApi.post("/", {
     jobPostingId,

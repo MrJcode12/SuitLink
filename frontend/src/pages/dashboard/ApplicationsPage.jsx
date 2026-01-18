@@ -1,12 +1,19 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { Briefcase, Bell, FileText, Calendar, Building } from "lucide-react";
+import { useNavigate, useLocation } from "react-router-dom";
+import {
+  Briefcase,
+  Bell,
+  FileText,
+  Calendar,
+  Building,
+  MapPin,
+} from "lucide-react";
 import useAuth from "../../hooks/useAuth";
 import applicationsApiService from "../../services/applicationsService";
-import Logo from "../../components/Auth/Shared/Logo";
 
 const ApplicationsPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
 
   const [applications, setApplications] = useState([]);
@@ -17,6 +24,8 @@ const ApplicationsPage = () => {
     limit: 10,
     totalItems: 0,
     totalPages: 0,
+    hasNextPage: false,
+    hasPrevPage: false,
   });
 
   useEffect(() => {
@@ -34,14 +43,21 @@ const ApplicationsPage = () => {
       });
 
       if (response.success) {
-        setApplications(response.data.applications || []);
-        if (response.data.pagination) {
-          setPagination(response.data.pagination);
+        // Backend returns data.applications array
+        setApplications(response.data || []);
+
+        // Update pagination if provided
+        if (response.pagination) {
+          setPagination((prev) => ({
+            ...prev,
+            ...response.pagination,
+          }));
         }
       }
     } catch (err) {
       console.error("Error fetching applications:", err);
       setError(err.message || "Failed to load applications");
+      setApplications([]);
     } finally {
       setLoading(false);
     }
@@ -85,13 +101,16 @@ const ApplicationsPage = () => {
       <header className="bg-white border-b border-gray-200 sticky top-0 z-40">
         <div className="px-6 py-4">
           <div className="flex items-center justify-between">
-            <Logo />
+            <div className="flex items-center gap-2">
+              <Briefcase className="size-7 text-chart-1" />
+              <span className="text-xl text-gray-900">SuitLink</span>
+            </div>
 
             <nav className="hidden md:flex items-center gap-6">
               <button
                 onClick={() => navigate("/applicant-dashboard")}
                 className={`text-sm font-medium pb-1 ${
-                  isActiveRoute("/jobs")
+                  isActiveRoute("/applicant-dashboard")
                     ? "text-chart-1 border-b-2 border-chart-1"
                     : "text-gray-600 hover:text-gray-900"
                 } py-1`}
@@ -107,16 +126,6 @@ const ApplicationsPage = () => {
                 } py-1`}
               >
                 Applications
-              </button>
-              <button
-                onClick={() => navigate("/saved-jobs")}
-                className={`text-sm font-medium pb-1 ${
-                  isActiveRoute("/saved-jobs")
-                    ? "text-chart-1 border-b-2 border-chart-1"
-                    : "text-gray-600 hover:text-gray-900"
-                } py-1`}
-              >
-                Saved Jobs
               </button>
             </nav>
 
@@ -176,7 +185,7 @@ const ApplicationsPage = () => {
               Start applying to jobs to see them here
             </p>
             <button
-              onClick={() => navigate("/jobs")}
+              onClick={() => navigate("/applicant-dashboard")}
               className="px-6 py-3 bg-chart-1 text-white rounded-lg hover:opacity-90"
             >
               Browse Jobs
@@ -213,9 +222,16 @@ const ApplicationsPage = () => {
                           <Building className="w-4 h-4" />
                           <span>
                             {application.jobPosting?.company?.companyName ||
+                              application.company?.companyName ||
                               "Company"}
                           </span>
                         </div>
+                        {application.jobPosting?.location && (
+                          <div className="flex items-center gap-1">
+                            <MapPin className="w-4 h-4" />
+                            <span>{application.jobPosting.location}</span>
+                          </div>
+                        )}
                         <div className="flex items-center gap-1">
                           <Calendar className="w-4 h-4" />
                           <span>
@@ -235,7 +251,8 @@ const ApplicationsPage = () => {
                       onClick={() =>
                         navigate(`/jobs/${application.jobPosting?._id}`)
                       }
-                      className="ml-4 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm"
+                      disabled={!application.jobPosting?._id}
+                      className="ml-4 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       View Job
                     </button>

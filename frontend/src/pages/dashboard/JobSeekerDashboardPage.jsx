@@ -1,9 +1,9 @@
-// src/pages/dashboard/JobSeekerDashboardPage.jsx
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Search, Briefcase, SlidersHorizontal, Bell, X } from "lucide-react";
 import useAuth from "../../hooks/useAuth";
 import jobsApiService from "../../services/applicantJobsService";
+import applicationsApiService from "../../services/applicationsService";
 import JobGrid from "../../components/ApplicantDashboard/JobGrid";
 import JobModal from "../../components/ApplicantDashboard/JobModal";
 import Pagination from "../../components/ApplicantDashboard/Pagination";
@@ -26,7 +26,7 @@ const JobSeekerDashboardPage = () => {
   });
 
   const [showFilters, setShowFilters] = useState(false);
-  const [savedJobs, setSavedJobs] = useState([]);
+  const [appliedJobIds, setAppliedJobIds] = useState(new Set());
   const [searchInput, setSearchInput] = useState("");
   const [selectedJob, setSelectedJob] = useState(null);
 
@@ -38,11 +38,17 @@ const JobSeekerDashboardPage = () => {
     salaryMax: "",
   });
 
+  // Fetch applied jobs on mount
+  useEffect(() => {
+    fetchAppliedJobs();
+  }, []);
+
+  // Fetch jobs when filters or pagination change
   useEffect(() => {
     fetchJobs();
   }, [pagination.page, filters]);
 
-  // Debounce search
+  // Debounced search - update filters when search input changes
   useEffect(() => {
     const timer = setTimeout(() => {
       if (searchInput !== filters.search) {
@@ -53,6 +59,26 @@ const JobSeekerDashboardPage = () => {
 
     return () => clearTimeout(timer);
   }, [searchInput]);
+
+  const fetchAppliedJobs = async () => {
+    try {
+      const response = await applicationsApiService.getMyApplications({
+        page: 1,
+        limit: 1000,
+      });
+
+      if (response.success && response.data.applications) {
+        const appliedIds = new Set(
+          response.data.applications.map(
+            (app) => app.jobPosting?._id || app.jobPosting
+          )
+        );
+        setAppliedJobIds(appliedIds);
+      }
+    } catch (err) {
+      console.error("Error fetching applied jobs:", err);
+    }
+  };
 
   const fetchJobs = async () => {
     try {
@@ -99,19 +125,16 @@ const JobSeekerDashboardPage = () => {
     setPagination((prev) => ({ ...prev, page: 1 }));
   };
 
-  const toggleSaveJob = (jobId) => {
-    setSavedJobs((prev) =>
-      prev.includes(jobId)
-        ? prev.filter((id) => id !== jobId)
-        : [...prev, jobId]
-    );
-  };
-
   const handleJobClick = (jobId) => {
     const job = jobs.find((j) => j._id === jobId);
     if (job) {
       setSelectedJob(job);
     }
+  };
+
+  const handleApplySuccess = (jobId) => {
+    setAppliedJobIds((prev) => new Set([...prev, jobId]));
+    fetchAppliedJobs(); // Refresh applied jobs
   };
 
   const closeModal = () => {
@@ -140,7 +163,14 @@ const JobSeekerDashboardPage = () => {
 
   return (
     <>
-      {selectedJob && <JobModal job={selectedJob} onClose={closeModal} />}
+      {selectedJob && (
+        <JobModal
+          job={selectedJob}
+          onClose={closeModal}
+          isApplied={appliedJobIds.has(selectedJob._id)}
+          onApplySuccess={handleApplySuccess}
+        />
+      )}
 
       <div className="min-h-screen bg-gray-50">
         {/* Header */}
@@ -148,7 +178,7 @@ const JobSeekerDashboardPage = () => {
           <div className="px-6 py-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Briefcase className="size-7 text-emerald-600" />
+                <Briefcase className="size-7 text-chart-1" />
                 <span className="text-xl text-gray-900">SuitLink</span>
               </div>
 
@@ -156,7 +186,7 @@ const JobSeekerDashboardPage = () => {
                 <button
                   onClick={() => navigate("/applicant-dashboard")}
                   className={`text-sm font-medium pb-1 ${
-                    isActiveRoute("/jobs")
+                    isActiveRoute("/applicant-dashboard")
                       ? "text-chart-1 border-b-2 border-chart-1"
                       : "text-gray-600 hover:text-gray-900"
                   } py-1`}
@@ -172,16 +202,6 @@ const JobSeekerDashboardPage = () => {
                   } py-1`}
                 >
                   Applications
-                </button>
-                <button
-                  onClick={() => navigate("/saved-jobs")}
-                  className={`text-sm font-medium pb-1 ${
-                    isActiveRoute("/saved-jobs")
-                      ? "text-chart-1 border-b-2 border-chart-1"
-                      : "text-gray-600 hover:text-gray-900"
-                  } py-1`}
-                >
-                  Saved Jobs
                 </button>
               </nav>
 
@@ -208,7 +228,7 @@ const JobSeekerDashboardPage = () => {
               <input
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
-                placeholder="Search for jobs, companies..."
+                placeholder="Search by job title or company name..."
                 className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-chart-1 focus:ring-1 focus:ring-chart-1"
               />
             </form>
@@ -320,8 +340,7 @@ const JobSeekerDashboardPage = () => {
                 jobs={jobs}
                 loading={loading}
                 error={error}
-                savedJobs={savedJobs}
-                onSaveToggle={toggleSaveJob}
+                appliedJobIds={appliedJobIds}
                 onJobClick={handleJobClick}
               />
 

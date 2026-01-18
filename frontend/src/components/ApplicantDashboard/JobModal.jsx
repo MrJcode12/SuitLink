@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useState, useEffect } from "react";
 import {
   X,
   MapPin,
@@ -6,9 +6,16 @@ import {
   Clock,
   Building,
   DollarSign,
+  CheckCircle,
 } from "lucide-react";
+import applicationsApiService from "../../services/applicationsService";
 
-const JobModal = ({ job, onClose, isApplied = false }) => {
+const JobModal = ({ job, onClose, isApplied = false, onApplySuccess }) => {
+  const [applying, setApplying] = useState(false);
+  const [applied, setApplied] = useState(isApplied);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+
   useEffect(() => {
     // Disable body scroll when modal is open
     document.body.style.overflow = "hidden";
@@ -27,6 +34,48 @@ const JobModal = ({ job, onClose, isApplied = false }) => {
       document.removeEventListener("keydown", handleEsc);
     };
   }, [onClose]);
+
+  useEffect(() => {
+    setApplied(isApplied);
+  }, [isApplied]);
+
+  const handleApply = async () => {
+    if (applied || applying) return;
+
+    setApplying(true);
+    setError("");
+    setSuccess("");
+
+    try {
+      // For now, we'll use a default resume ID
+      // In production, you'd fetch the user's resumes and let them select one
+      const response = await applicationsApiService.applyToJob(
+        job._id,
+        "default-resume-id", // This needs to be replaced with actual resume selection
+        "" // Optional cover letter
+      );
+
+      if (response.success) {
+        setApplied(true);
+        setSuccess("Application submitted successfully!");
+        if (onApplySuccess) {
+          onApplySuccess(job._id);
+        }
+
+        // Close modal after 2 seconds
+        setTimeout(() => {
+          onClose();
+        }, 2000);
+      }
+    } catch (err) {
+      console.error("Error applying to job:", err);
+      setError(
+        err.message || "Failed to submit application. Please try again."
+      );
+    } finally {
+      setApplying(false);
+    }
+  };
 
   const formatSalary = (salaryRange) => {
     if (!salaryRange || (!salaryRange.min && !salaryRange.max)) {
@@ -90,6 +139,21 @@ const JobModal = ({ job, onClose, isApplied = false }) => {
 
         {/* Content */}
         <div className="p-6 space-y-6">
+          {/* Success Message */}
+          {success && (
+            <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4 flex items-center gap-3">
+              <CheckCircle className="w-5 h-5 text-emerald-600 flex-shrink-0" />
+              <p className="text-sm text-emerald-700">{success}</p>
+            </div>
+          )}
+
+          {/* Error Message */}
+          {error && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+              <p className="text-sm text-red-600">{error}</p>
+            </div>
+          )}
+
           {/* Job Details */}
           <div className="flex flex-wrap gap-4 text-sm">
             <div className="flex items-center gap-2 text-gray-600">
@@ -114,7 +178,7 @@ const JobModal = ({ job, onClose, isApplied = false }) => {
           </div>
 
           {/* Application Status */}
-          {isApplied && (
+          {applied && (
             <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4">
               <p className="text-sm text-emerald-700 font-medium">
                 ✓ You have already applied to this position
@@ -197,9 +261,13 @@ const JobModal = ({ job, onClose, isApplied = false }) => {
           >
             Close
           </button>
-          {!isApplied && (
-            <button className="px-6 py-3 bg-chart-1 text-white rounded-lg hover:opacity-90">
-              Apply Now
+          {!applied && (
+            <button
+              onClick={handleApply}
+              disabled={applying}
+              className="px-6 py-3 bg-chart-1 text-white rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {applying ? "Submitting..." : "Apply Now"}
             </button>
           )}
         </div>

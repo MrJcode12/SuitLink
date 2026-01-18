@@ -1,6 +1,6 @@
-import { MapPin, Briefcase, Clock, Building, Bookmark } from "lucide-react";
+import { MapPin, Briefcase, Clock, Building, CheckCircle } from "lucide-react";
 
-const JobCard = ({ job, onSaveToggle, isSaved = false, onClick }) => {
+const JobCard = ({ job, isApplied = false, onClick }) => {
   const formatSalary = (salaryRange) => {
     if (!salaryRange || (!salaryRange.min && !salaryRange.max)) {
       return "Negotiable";
@@ -55,7 +55,7 @@ const JobCard = ({ job, onSaveToggle, isSaved = false, onClick }) => {
             </div>
           )}
           <div className="flex-1 min-w-0">
-            <h3 className="text-base font-medium text-gray-900 group-hover:text-emerald-600 transition-colors mb-1">
+            <h3 className="text-base font-medium text-gray-900 group-hover:text-chart-1 transition-colors mb-1">
               {job.title}
             </h3>
             <p className="text-sm text-gray-600">
@@ -63,19 +63,12 @@ const JobCard = ({ job, onSaveToggle, isSaved = false, onClick }) => {
             </p>
           </div>
         </div>
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onSaveToggle?.(job._id);
-          }}
-          className={`p-2 rounded-lg transition-colors ${
-            isSaved
-              ? "bg-emerald-100 text-emerald-600"
-              : "hover:bg-gray-100 text-gray-400"
-          }`}
-        >
-          <Bookmark className={`w-5 h-5 ${isSaved ? "fill-current" : ""}`} />
-        </button>
+        {isApplied && (
+          <div className="flex items-center gap-1 px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-medium">
+            <CheckCircle className="w-4 h-4" />
+            Applied
+          </div>
+        )}
       </div>
 
       <div className="flex flex-wrap items-center gap-3 text-sm text-gray-600 mb-3">
@@ -118,8 +111,8 @@ const JobCard = ({ job, onSaveToggle, isSaved = false, onClick }) => {
 
       <div className="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500">
         <span>{formatDate(job.createdAt)}</span>
-        {job.status === "open" && (
-          <span className="text-emerald-600 font-medium">Actively hiring</span>
+        {job.status === "open" && !isApplied && (
+          <span className="text-chart-1 font-medium">Actively hiring</span>
         )}
       </div>
     </div>
