@@ -1,6 +1,6 @@
 import React from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { ProfileProvider } from "./context/ProfileContext";
+import { UnifiedProfileProvider } from "./context/ProfileContext";
 import LoginPage from "./pages/auth/LoginPage";
 import SignUpPage from "./pages/auth/SignUpPage";
 import VerifyEmailPage from "./pages/auth/VerifyEmailPage";
@@ -40,7 +40,7 @@ const NotFound = () => {
 const App = () => {
   return (
     <BrowserRouter>
-      <ProfileProvider>
+      <UnifiedProfileProvider>
         <Routes>
           {/* Public Auth Routes */}
           <Route path="/login" element={<LoginPage />} />
@@ -74,7 +74,6 @@ const App = () => {
               </ProtectedRoute>
             }
           />
-
           {/* Employer Protected Routes */}
           <Route
             path="/employer-dashboard"
@@ -143,7 +142,7 @@ const App = () => {
           {/* 404 - Catch all */}
           <Route path="*" element={<NotFound />} />
         </Routes>
-      </ProfileProvider>
+      </UnifiedProfileProvider>
     </BrowserRouter>
   );
 };

@@ -1,88 +1,117 @@
-import { createContext, useContext, useState, useEffect } from "react";
-import applicantProfileService from "../services/applicantProfileService";
-import { authService } from "../services/authService";
+import { createContext, useContext } from "react";
+import { ApplicantProfileProvider, useApplicantProfile } from "./ApplicantProfileContext";
+import { EmployerProfileProvider, useEmployerProfile } from "./EmployerProfileContext";
+import useAuth from "../hooks/useAuth";
 
-const ProfileContext = createContext();
+const UnifiedProfileContext = createContext();
 
-export const ProfileProvider = ({ children }) => {
-  const [profile, setProfile] = useState(null);
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+/**
+ * UnifiedProfileProvider - Smart role-based profile provider
+ *
+ * Automatically provides the correct profile context based on user role:
+ * - Applicants get ApplicantProfileContext
+ * - Employers get EmployerProfileContext
+ */
+export const UnifiedProfileProvider = ({ children }) => {
+  const { user, loading: authLoading } = useAuth();
 
-  const fetchProfile = async () => {
-    try {
-      setLoading(true);
-      setError(null);
+  // Wait for auth to resolve before mounting role-specific providers
+  if (authLoading) {
+    return (
+      <UnifiedProfileContext.Provider value={{ loading: true }}>
+        {children}
+      </UnifiedProfileContext.Provider>
+    );
+  }
 
-      // Fetch both user and profile data
-      const [userResponse, profileResponse] = await Promise.all([
-        authService.getCurrentUser(),
-        applicantProfileService.getProfile(),
-      ]);
+  // No user = no profile to fetch
+  if (!user) {
+    return (
+      <UnifiedProfileContext.Provider value={{ loading: false }}>
+        {children}
+      </UnifiedProfileContext.Provider>
+    );
+  }
 
-      if (userResponse.success) {
-        setUser(userResponse.data);
-      }
+  // Mount role-specific provider
+  if (user.role === 'applicant') {
+    return (
+      <ApplicantProfileProvider user={user}>
+        {children}
+      </ApplicantProfileProvider>
+    );
+  }
 
-      if (profileResponse.success) {
-        setProfile(profileResponse.data);
-      }
-    } catch (err) {
-      console.error("Error fetching profile data:", err);
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
+  if (user.role === 'employer') {
+    return (
+      <EmployerProfileProvider user={user}>
+        {children}
+      </EmployerProfileProvider>
+    );
+  }
 
-  const refreshProfile = async () => {
-    await fetchProfile();
-  };
-
-  const clearProfile = () => {
-    setProfile(null);
-    setUser(null);
-    setError(null);
-    setLoading(false);
-  };
-
-  // Initial fetch on mount
-  useEffect(() => {
-    fetchProfile();
-  }, []);
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      // Clear profile data when component unmounts
-      setProfile(null);
-      setUser(null);
-    };
-  }, []);
-
+  // Fallback for unknown roles
   return (
-    <ProfileContext.Provider
-      value={{
-        profile,
-        user,
-        loading,
-        error,
-        refreshProfile,
-        clearProfile,
-      }}
-    >
+    <UnifiedProfileContext.Provider value={{ loading: false }}>
       {children}
-    </ProfileContext.Provider>
+    </UnifiedProfileContext.Provider>
   );
 };
 
+/**
+ * useProfile - Smart hook that returns the correct profile based on role
+ *
+ * For applicants: returns { profile, loading, error, refreshProfile, clearProfile }
+ * For employers: returns { companyProfile, loading, error, refreshProfile, clearProfile }
+ *
+ * Usage in components:
+ * const { profile } = useProfile(); // for applicants
+ * const { companyProfile } = useProfile(); // for employers
+ */
 export const useProfile = () => {
-  const context = useContext(ProfileContext);
-  if (!context) {
-    throw new Error("useProfile must be used within ProfileProvider");
+  const { user } = useAuth();
+
+  // Try applicant context first
+  let applicantContext;
+  try {
+    applicantContext = useApplicantProfile();
+  } catch (e) {
+    // Not in applicant provider, that's ok
   }
-  return context;
+
+  // Try employer context
+  let employerContext;
+  try {
+    employerContext = useEmployerProfile();
+  } catch (e) {
+    // Not in employer provider, that's ok
+  }
+
+  // Return the active context
+  if (user?.role === 'applicant' && applicantContext) {
+    return {
+      ...applicantContext,
+      user,
+    };
+  }
+
+  if (user?.role === 'employer' && employerContext) {
+    return {
+      ...employerContext,
+      user,
+    };
+  }
+
+  // Fallback for when no profile context is active
+  return {
+    profile: null,
+    companyProfile: null,
+    loading: false,
+    error: null,
+    user,
+    refreshProfile: async () => {},
+    clearProfile: () => {},
+  };
 };
 
 export default useProfile;

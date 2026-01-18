@@ -18,6 +18,7 @@ import EditJobModal from "../../components/EmployerDashboard/EditJobModal";
 import Logo from "../../components/Auth/Shared/Logo";
 import EmployerNavbar from "../../components/EmployerDashboard/EmployerNavBar";
 
+
 const EmployerDashboardPage = () => {
   const navigate = useNavigate();
   const { user, loading: authLoading, isEmployer, logout } = useAuth();

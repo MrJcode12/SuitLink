@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import { useProfile } from "../context/ProfileContext";
 
 const API_BASE_URL = "http://localhost:8888/api/v1/auth";
 
@@ -10,7 +9,6 @@ export const useAuth = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const navigate = useNavigate();
-  const { clearProfile } = useProfile();
 
   useEffect(() => {
     checkAuth();
@@ -33,12 +31,10 @@ export const useAuth = () => {
         setUser(response.data.data);
       } else {
         setUser(null);
-        clearProfile(); // Clear profile when no user
       }
     } catch (err) {
       console.error("Auth check failed:", err);
       setUser(null);
-      clearProfile(); // Clear profile on auth failure
     } finally {
       setLoading(false);
     }
@@ -54,7 +50,6 @@ export const useAuth = () => {
         }
       );
       setUser(null);
-      clearProfile(); // Clear profile on logout
       navigate("/login");
     } catch (err) {
       console.error("Logout failed:", err);
