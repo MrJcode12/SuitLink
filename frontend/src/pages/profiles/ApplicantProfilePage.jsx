@@ -1,13 +1,17 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Briefcase, Bell, User } from "lucide-react";
+import { Bell } from "lucide-react";
 import useAuth from "../../hooks/useAuth";
 import useApplicantProfile from "../../hooks/useApplicantProfile";
 import ProfileForm from "../../components/ApplicantProfile/ProfileForm";
+import AvatarUpload from "../../components/ApplicantProfile/AvatarUpload";
 import ResumeUpload from "../../components/ApplicantProfile/ResumeUpload";
 import ParsedResumeDisplay from "../../components/ApplicantProfile/ParsedResumeDisplay";
 import CoverLetterEditor from "../../components/ApplicantProfile/CoverLetterEditor";
 import ProfileCompletionBadge from "../../components/ApplicantProfile/ProfileCompletionBadge";
+import EducationManager from "../../components/ApplicantProfile/EducationManager";
+import ExperienceManager from "../../components/ApplicantProfile/ExperienceManager";
+import SkillsManager from "../../components/ApplicantProfile/SkillsManager";
 import ApplicantProfileSetupModal from "../../components/ApplicantProfile/ApplicantProfileSetupModal";
 import Logo from "../../components/Auth/Shared/Logo";
 
@@ -171,12 +175,24 @@ const ApplicantProfilePage = () => {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Main Content - Left Column */}
             <div className="lg:col-span-2 space-y-6">
+              {/* Avatar Upload */}
+              <AvatarUpload profile={profile} onUpdate={refetch} />
+
               {/* Personal Information */}
               <ProfileForm
                 profile={profile}
                 onSave={handleProfileUpdate}
                 updating={updating}
               />
+
+              {/* Skills */}
+              <SkillsManager profile={profile} onUpdate={refetch} />
+
+              {/* Experience */}
+              <ExperienceManager profile={profile} onUpdate={refetch} />
+
+              {/* Education */}
+              <EducationManager profile={profile} onUpdate={refetch} />
 
               {/* Resume Upload */}
               <ResumeUpload
@@ -253,15 +269,15 @@ const ApplicantProfilePage = () => {
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-emerald-600 mt-0.5">•</span>
-                    <span>Add a compelling cover letter</span>
+                    <span>Add your work experience and education</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-emerald-600 mt-0.5">•</span>
+                    <span>List your technical and soft skills</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-emerald-600 mt-0.5">•</span>
                     <span>Keep your contact information up to date</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-emerald-600 mt-0.5">•</span>
-                    <span>Complete all sections for better job matching</span>
                   </li>
                 </ul>
               </div>
