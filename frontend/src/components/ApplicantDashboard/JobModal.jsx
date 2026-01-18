@@ -2,31 +2,29 @@ import { useState, useEffect } from "react";
 import {
   X,
   MapPin,
-  Briefcase,
   Clock,
   Building,
-  DollarSign,
   CheckCircle,
+  AlertCircle,
 } from "lucide-react";
 import applicationsApiService from "../../services/applicationsService";
+import applicantProfileService from "../../services/applicantProfileService";
 
 const JobModal = ({ job, onClose, isApplied = false, onApplySuccess }) => {
   const [applying, setApplying] = useState(false);
   const [applied, setApplied] = useState(isApplied);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [userProfile, setUserProfile] = useState(null);
+  const [loadingProfile, setLoadingProfile] = useState(true);
 
   useEffect(() => {
-    // Disable body scroll when modal is open
     document.body.style.overflow = "hidden";
+    fetchUserProfile();
 
-    // Handle ESC key
     const handleEsc = (e) => {
-      if (e.key === "Escape") {
-        onClose();
-      }
+      if (e.key === "Escape") onClose();
     };
-
     document.addEventListener("keydown", handleEsc);
 
     return () => {
@@ -39,53 +37,76 @@ const JobModal = ({ job, onClose, isApplied = false, onApplySuccess }) => {
     setApplied(isApplied);
   }, [isApplied]);
 
+  const fetchUserProfile = async () => {
+    try {
+      setLoadingProfile(true);
+      const response = await applicantProfileService.getProfile();
+      if (response.success && response.data) setUserProfile(response.data);
+    } catch (err) {
+      console.error("Error fetching profile:", err);
+      setError("Please complete your profile before applying");
+    } finally {
+      setLoadingProfile(false);
+    }
+  };
+
   const handleApply = async () => {
     if (applied || applying) return;
+
+    if (!userProfile) {
+      setError("Please complete your profile before applying");
+      return;
+    }
+
+    if (!userProfile.resumes || userProfile.resumes.length === 0) {
+      setError("Please upload a resume before applying");
+      return;
+    }
 
     setApplying(true);
     setError("");
     setSuccess("");
 
     try {
-      // For now, we'll use a default resume ID
-      // In production, you'd fetch the user's resumes and let them select one
+      const resumeId = userProfile.resumes[0]._id;
+      const coverLetter = userProfile.coverLetter || "";
       const response = await applicationsApiService.applyToJob(
         job._id,
-        "default-resume-id", // This needs to be replaced with actual resume selection
-        "" // Optional cover letter
+        resumeId,
+        coverLetter
       );
 
       if (response.success) {
         setApplied(true);
         setSuccess("Application submitted successfully!");
-        if (onApplySuccess) {
-          onApplySuccess(job._id);
-        }
-
-        // Close modal after 2 seconds
-        setTimeout(() => {
-          onClose();
-        }, 2000);
+        if (onApplySuccess) onApplySuccess(job._id);
+        setTimeout(() => onClose(), 2000);
       }
     } catch (err) {
       console.error("Error applying to job:", err);
-      setError(
-        err.message || "Failed to submit application. Please try again."
-      );
+      if (err.message.includes("already applied")) {
+        setError("You have already applied to this position");
+        setApplied(true);
+      } else if (err.message.includes("profile")) {
+        setError("Please complete your applicant profile first");
+      } else if (err.message.includes("resume")) {
+        setError("Please upload a resume before applying");
+      } else {
+        setError(
+          err.message || "Failed to submit application. Please try again."
+        );
+      }
     } finally {
       setApplying(false);
     }
   };
 
   const formatSalary = (salaryRange) => {
-    if (!salaryRange || (!salaryRange.min && !salaryRange.max)) {
+    if (!salaryRange || (!salaryRange.min && !salaryRange.max))
       return "Negotiable";
-    }
-
     const currency = salaryRange.currency || "PHP";
     const min = salaryRange.min ? `${salaryRange.min.toLocaleString()}` : "";
     const max = salaryRange.max ? `${salaryRange.max.toLocaleString()}` : "";
-
     if (min && max) return `${currency} ${min} - ${max}`;
     if (min) return `${currency} ${min}+`;
     if (max) return `Up to ${currency} ${max}`;
@@ -101,20 +122,28 @@ const JobModal = ({ job, onClose, isApplied = false, onApplySuccess }) => {
 
   if (!job) return null;
 
+  const canApply =
+    !applied &&
+    !applying &&
+    !loadingProfile &&
+    userProfile?.resumes?.length > 0;
+
   return (
     <div
-      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto"
+      className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto"
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-xl max-w-3xl w-full my-8 max-h-[90vh] overflow-y-auto"
+        className="bg-gray-900 rounded-2xl max-w-3xl w-full my-8 max-h-[90vh] overflow-y-auto shadow-2xl border border-gray-700 ring-1 ring-black/20"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="sticky top-0 bg-white border-b border-gray-200 p-6 flex items-start justify-between">
+        <div className="sticky top-0 bg-gray-900/95 backdrop-blur border-b border-gray-700 p-6 flex items-start justify-between">
           <div className="flex-1 pr-4">
-            <h2 className="text-2xl text-gray-900 mb-2">{job.title}</h2>
-            <div className="flex items-center gap-3 text-gray-600">
+            <h2 className="text-2xl font-semibold text-white mb-2">
+              {job.title}
+            </h2>
+            <div className="flex items-center gap-3 text-gray-400">
               {job.company?.logo?.url ? (
                 <img
                   src={job.company.logo.url}
@@ -122,74 +151,74 @@ const JobModal = ({ job, onClose, isApplied = false, onApplySuccess }) => {
                   className="w-8 h-8 rounded object-cover"
                 />
               ) : (
-                <Building className="w-5 h-5" />
+                <Building className="w-5 h-5 text-gray-400" />
               )}
-              <span className="text-lg">
+              <span className="text-lg text-white">
                 {job.company?.companyName || "Company"}
               </span>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            className="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors"
           >
-            <X className="w-6 h-6 text-gray-600" />
+            <X className="w-6 h-6" />
           </button>
         </div>
 
         {/* Content */}
         <div className="p-6 space-y-6">
-          {/* Success Message */}
           {success && (
-            <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4 flex items-center gap-3">
-              <CheckCircle className="w-5 h-5 text-emerald-600 flex-shrink-0" />
-              <p className="text-sm text-emerald-700">{success}</p>
+            <div className="bg-emerald-700/20 border border-emerald-600 rounded-lg p-4 flex items-center gap-3">
+              <CheckCircle className="w-5 h-5 text-emerald-500 flex-shrink-0" />
+              <p className="text-sm text-emerald-200">{success}</p>
             </div>
           )}
 
-          {/* Error Message */}
           {error && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-              <p className="text-sm text-red-600">{error}</p>
+            <div className="bg-red-700/20 border border-red-600 rounded-lg p-4 flex items-center gap-3">
+              <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
+              <p className="text-sm text-red-200">{error}</p>
             </div>
           )}
 
           {/* Job Details */}
-          <div className="flex flex-wrap gap-4 text-sm">
-            <div className="flex items-center gap-2 text-gray-600">
-              <MapPin className="w-5 h-5" />
+          <div className="flex flex-wrap gap-4 text-sm text-gray-300">
+            <div className="flex items-center gap-2">
+              <MapPin className="w-5 h-5 text-gray-400" />
               <span>{job.location}</span>
               {job.remote && (
-                <span className="ml-1 px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full">
+                <span className="ml-1 px-2 py-0.5 bg-emerald-700/20 text-emerald-200 text-xs rounded-full">
                   Remote
                 </span>
               )}
             </div>
-            <div className="flex items-center gap-2 text-gray-600">
-              <DollarSign className="w-5 h-5" />
+            <div className="flex items-center gap-2">
               <span>{formatSalary(job.salaryRange)}</span>
             </div>
-            <div className="flex items-center gap-2 text-gray-600">
-              <Clock className="w-5 h-5" />
+            <div className="flex items-center gap-2">
+              <Clock className="w-5 h-5 text-gray-400" />
               <span>
                 {employmentTypeLabels[job.employmentType] || job.employmentType}
               </span>
             </div>
           </div>
 
-          {/* Application Status */}
           {applied && (
-            <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4">
-              <p className="text-sm text-emerald-700 font-medium">
-                ✓ You have already applied to this position
+            <div className="bg-emerald-700/20 border border-emerald-600 rounded-lg p-4">
+              <p className="text-sm text-emerald-200 font-medium flex items-center gap-2">
+                <CheckCircle className="w-5 h-5" />
+                You have already applied to this position
               </p>
             </div>
           )}
 
           {/* Job Description */}
           <div>
-            <h3 className="text-lg text-gray-900 mb-3">Job Description</h3>
-            <div className="text-gray-700 whitespace-pre-line leading-relaxed">
+            <h3 className="text-lg font-medium text-white mb-3">
+              Job Description
+            </h3>
+            <div className="text-gray-300 whitespace-pre-line leading-relaxed">
               {job.description}
             </div>
           </div>
@@ -197,19 +226,21 @@ const JobModal = ({ job, onClose, isApplied = false, onApplySuccess }) => {
           {/* Requirements */}
           {job.requirements && (
             <div>
-              <h3 className="text-lg text-gray-900 mb-3">Requirements</h3>
+              <h3 className="text-lg font-medium text-white mb-3">
+                Requirements
+              </h3>
 
               {job.requirements.skills &&
                 job.requirements.skills.length > 0 && (
                   <div className="mb-4">
-                    <h4 className="text-sm text-gray-700 mb-2 font-medium">
+                    <h4 className="text-sm font-medium text-white mb-2">
                       Required Skills
                     </h4>
                     <div className="flex flex-wrap gap-2">
                       {job.requirements.skills.map((skill, index) => (
                         <span
                           key={index}
-                          className="px-3 py-1 bg-gray-100 text-gray-700 rounded-lg text-sm"
+                          className="px-3 py-1 bg-gray-800 text-gray-300 rounded-lg text-sm"
                         >
                           {skill}
                         </span>
@@ -220,10 +251,10 @@ const JobModal = ({ job, onClose, isApplied = false, onApplySuccess }) => {
 
               {job.requirements.experienceYears && (
                 <div className="mb-4">
-                  <h4 className="text-sm text-gray-700 mb-1 font-medium">
+                  <h4 className="text-sm font-medium text-white mb-1">
                     Experience
                   </h4>
-                  <p className="text-gray-600">
+                  <p className="text-gray-300">
                     {job.requirements.experienceYears} years
                   </p>
                 </div>
@@ -231,10 +262,10 @@ const JobModal = ({ job, onClose, isApplied = false, onApplySuccess }) => {
 
               {job.requirements.educationLevel && (
                 <div>
-                  <h4 className="text-sm text-gray-700 mb-1 font-medium">
+                  <h4 className="text-sm font-medium text-white mb-1">
                     Education
                   </h4>
-                  <p className="text-gray-600">
+                  <p className="text-gray-300">
                     {job.requirements.educationLevel}
                   </p>
                 </div>
@@ -242,11 +273,12 @@ const JobModal = ({ job, onClose, isApplied = false, onApplySuccess }) => {
             </div>
           )}
 
-          {/* Company Info */}
           {job.company?.description && (
             <div>
-              <h3 className="text-lg text-gray-900 mb-3">About the Company</h3>
-              <p className="text-gray-700 leading-relaxed">
+              <h3 className="text-lg font-medium text-white mb-3">
+                About the Company
+              </h3>
+              <p className="text-gray-300 leading-relaxed">
                 {job.company.description}
               </p>
             </div>
@@ -254,20 +286,25 @@ const JobModal = ({ job, onClose, isApplied = false, onApplySuccess }) => {
         </div>
 
         {/* Footer */}
-        <div className="sticky bottom-0 bg-white border-t border-gray-200 p-6 flex items-center justify-end gap-3">
+        <div className="sticky bottom-0 bg-gray-900/95 backdrop-blur border-t border-gray-700 p-6 flex items-center justify-end gap-3">
           <button
             onClick={onClose}
-            className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+            className="px-6 py-3 rounded-lg border border-gray-700 text-white hover:bg-gray-800 transition-colors"
           >
             Close
           </button>
+
           {!applied && (
             <button
               onClick={handleApply}
-              disabled={applying}
-              className="px-6 py-3 bg-chart-1 text-white rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={!canApply || applying}
+              className="px-6 py-3 rounded-lg bg-emerald-600 text-white font-medium hover:bg-emerald-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {applying ? "Submitting..." : "Apply Now"}
+              {loadingProfile
+                ? "Loading..."
+                : applying
+                ? "Submitting..."
+                : "Apply Now"}
             </button>
           )}
         </div>

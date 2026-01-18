@@ -44,10 +44,21 @@ export const ProfileProvider = ({ children }) => {
     setProfile(null);
     setUser(null);
     setError(null);
+    setLoading(false);
   };
 
+  // Initial fetch on mount
   useEffect(() => {
     fetchProfile();
+  }, []);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      // Clear profile data when component unmounts
+      setProfile(null);
+      setUser(null);
+    };
   }, []);
 
   return (
@@ -73,3 +84,5 @@ export const useProfile = () => {
   }
   return context;
 };
+
+export default useProfile;

@@ -81,7 +81,7 @@ const ApplicantProfilePage = () => {
 
   if (authLoading || loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-chart-1 mx-auto"></div>
           <p className="text-muted-foreground mt-4">Loading profile...</p>
@@ -96,9 +96,9 @@ const ApplicantProfilePage = () => {
         <ApplicantProfileSetupModal onSuccess={handleSetupSuccess} />
       )}
 
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-gray-50">
         {/* Header */}
-        <header className="bg-card border-b border-border sticky top-0 z-40">
+        <header className="border-white border-b border-gray-200 sticky top-0 z-40">
           <ApplicantNavbar />
         </header>
 
@@ -178,7 +178,7 @@ const ApplicantProfilePage = () => {
               <ProfileCompletionBadge profile={profile} />
 
               {/* Quick Stats */}
-              <div className="bg-card rounded-xl border border-border p-6">
+              <div className="border-white rounded-xl border border-gray-200 p-6">
                 <h3 className="text-lg text-foreground mb-4">Quick Stats</h3>
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
@@ -206,7 +206,7 @@ const ApplicantProfilePage = () => {
                     </span>
                   </div>
                   {profile?.resumeAnalysis?.score && (
-                    <div className="flex items-center justify-between pt-3 border-t border-border">
+                    <div className="flex items-center justify-between pt-3 border-t border-gray-200">
                       <span className="text-sm text-muted-foreground">
                         Resume Score
                       </span>

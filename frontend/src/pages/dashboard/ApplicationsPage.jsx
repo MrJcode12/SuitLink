@@ -1,13 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import {
-  Briefcase,
-  Bell,
-  FileText,
-  Calendar,
-  Building,
-  MapPin,
-} from "lucide-react";
+import { FileText, Calendar, Building, MapPin } from "lucide-react";
 import useAuth from "../../hooks/useAuth";
 import applicationsApiService from "../../services/applicationsService";
 import applicantService from "../../services/applicantService";
@@ -147,7 +140,7 @@ const ApplicationsPage = () => {
 
   if (authLoading || (loading && !applicantProfile)) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-chart-1 mx-auto mb-4"></div>
           <p className="text-muted-foreground">Loading...</p>
@@ -162,9 +155,9 @@ const ApplicationsPage = () => {
         <ApplicantProfileSetupModal onSuccess={handleSetupSuccess} />
       )}
 
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-gray-50">
         {/* Header */}
-        <header className="bg-card border-b border-border sticky top-0 z-40">
+        <header className="bg-white border-b border-gray-200 sticky top-0 z-40">
           <ApplicantNavbar />
         </header>
 
@@ -202,7 +195,7 @@ const ApplicationsPage = () => {
 
           {/* Empty State */}
           {!loading && !error && applications.length === 0 && (
-            <div className="bg-card rounded-xl border border-border p-12 text-center">
+            <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
               <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
               <h3 className="text-lg text-foreground mb-2">
                 No applications yet
@@ -221,7 +214,7 @@ const ApplicationsPage = () => {
 
           {/* Applications List */}
           {!loading && !error && applications.length > 0 && (
-            <div className="bg-card rounded-xl border border-border">
+            <div className="bg-white rounded-xl border border-gray-200">
               <div className="divide-y divide-border">
                 {applications.map((application) => (
                   <div
@@ -278,7 +271,7 @@ const ApplicationsPage = () => {
                           navigate(`/jobs/${application.jobPosting?._id}`)
                         }
                         disabled={!application.jobPosting?._id}
-                        className="ml-4 px-4 py-2 border border-border rounded-lg hover:bg-accent text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="ml-4 px-4 py-2 border border-gray-200 rounded-lg hover:bg-accent text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         View Job
                       </button>
@@ -289,7 +282,7 @@ const ApplicationsPage = () => {
 
               {/* Pagination */}
               {pagination.totalPages > 1 && (
-                <div className="p-4 border-t border-border flex items-center justify-between">
+                <div className="p-4 border-t border-gray-200 flex items-center justify-between">
                   <div className="text-sm text-muted-foreground">
                     Showing {(pagination.page - 1) * pagination.limit + 1} to{" "}
                     {Math.min(
@@ -308,7 +301,7 @@ const ApplicationsPage = () => {
                         }))
                       }
                       disabled={!pagination.hasPrevPage}
-                      className="px-4 py-2 border border-border rounded-lg hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                      className="px-4 py-2 border border-gray-200 rounded-lg hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed text-sm"
                     >
                       Previous
                     </button>
@@ -325,7 +318,7 @@ const ApplicationsPage = () => {
                         }))
                       }
                       disabled={!pagination.hasNextPage}
-                      className="px-4 py-2 border border-border rounded-lg hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                      className="px-4 py-2 border border-gray-200 rounded-lg hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed text-sm"
                     >
                       Next
                     </button>

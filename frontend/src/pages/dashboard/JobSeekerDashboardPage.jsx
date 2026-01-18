@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Search, Briefcase, SlidersHorizontal, Bell, X } from "lucide-react";
+import { Search, SlidersHorizontal, X } from "lucide-react";
 import useAuth from "../../hooks/useAuth";
 import jobsApiService from "../../services/applicantJobsService";
 import applicationsApiService from "../../services/applicationsService";
@@ -19,8 +19,12 @@ const JobSeekerDashboardPage = () => {
   const [applicantProfile, setApplicantProfile] = useState(null);
   const [showSetupModal, setShowSetupModal] = useState(false);
   const [jobs, setJobs] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [appliedJobIds, setAppliedJobIds] = useState(new Set());
+  const [searchInput, setSearchInput] = useState("");
+  const [showFilters, setShowFilters] = useState(false);
+  const [selectedJob, setSelectedJob] = useState(null);
   const [pagination, setPagination] = useState({
     page: 1,
     limit: 10,
@@ -29,12 +33,6 @@ const JobSeekerDashboardPage = () => {
     hasNextPage: false,
     hasPrevPage: false,
   });
-
-  const [showFilters, setShowFilters] = useState(false);
-  const [appliedJobIds, setAppliedJobIds] = useState(new Set());
-  const [searchInput, setSearchInput] = useState("");
-  const [selectedJob, setSelectedJob] = useState(null);
-
   const [filters, setFilters] = useState({
     search: "",
     employmentType: "",
@@ -42,57 +40,31 @@ const JobSeekerDashboardPage = () => {
     salaryMin: "",
     salaryMax: "",
   });
+  const abortControllerRef = useRef(null);
 
-  // Check auth and role
   useEffect(() => {
     if (!authLoading) {
-      if (!user) {
-        navigate("/login");
-      } else if (!isApplicant) {
-        navigate("/employer-dashboard");
-      }
+      if (!user) navigate("/login");
+      else if (!isApplicant) navigate("/employer-dashboard");
     }
   }, [user, authLoading, isApplicant, navigate]);
 
-  // Fetch applicant profile
   useEffect(() => {
-    if (user && isApplicant) {
-      fetchApplicantProfile();
-    }
+    if (user && isApplicant) fetchApplicantProfile();
   }, [user, isApplicant]);
-
-  // Fetch applied jobs when profile exists
   useEffect(() => {
-    if (applicantProfile) {
-      fetchAppliedJobs();
-    }
+    if (applicantProfile) fetchAppliedJobs();
   }, [applicantProfile]);
-
-  // Fetch jobs when filters or pagination change
   useEffect(() => {
     fetchJobs();
   }, [pagination.page, filters]);
-
-  // Debounced search - update filters when search input changes
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (searchInput !== filters.search) {
-        setFilters((prev) => ({ ...prev, search: searchInput }));
-        setPagination((prev) => ({ ...prev, page: 1 }));
-      }
-    }, 500);
-
-    return () => clearTimeout(timer);
-  }, [searchInput]);
 
   const fetchApplicantProfile = async () => {
     try {
       setLoading(true);
       const response = await applicantService.getProfile();
-
       if (response.success) {
-        // Profile data will be null if no profile exists
-        if (!response.data || response.data === null) {
+        if (!response.data) {
           setShowSetupModal(true);
           setApplicantProfile(null);
         } else {
@@ -100,9 +72,7 @@ const JobSeekerDashboardPage = () => {
           setShowSetupModal(false);
         }
       }
-    } catch (err) {
-      console.error("Failed to fetch applicant profile:", err);
-      // On any error, show setup modal
+    } catch {
       setShowSetupModal(true);
       setApplicantProfile(null);
     } finally {
@@ -116,40 +86,34 @@ const JobSeekerDashboardPage = () => {
         page: 1,
         limit: 1000,
       });
-
       if (response.success && response.data) {
-        // Handle both array and applications object structure
         const applications = Array.isArray(response.data)
           ? response.data
           : response.data.applications || [];
-
         const appliedIds = new Set(
           applications
             .map((app) => app.jobPosting?._id || app.jobPosting)
-            .filter(Boolean) // Filter out any undefined/null values
+            .filter(Boolean)
         );
         setAppliedJobIds(appliedIds);
       }
-    } catch (err) {
-      console.error("Error fetching applied jobs:", err);
-      // Set empty set on error
+    } catch {
       setAppliedJobIds(new Set());
     }
   };
 
   const fetchJobs = async () => {
+    if (abortControllerRef.current) abortControllerRef.current.abort();
+    abortControllerRef.current = new AbortController();
     try {
       setLoading(true);
       setError("");
-
       const params = {
         page: pagination.page,
         limit: pagination.limit,
         ...filters,
       };
-
       const response = await jobsApiService.getJobs(params);
-
       if (response.success) {
         setJobs(response.data.jobs || []);
         setPagination(
@@ -164,82 +128,70 @@ const JobSeekerDashboardPage = () => {
         );
       }
     } catch (err) {
-      console.error("Error fetching jobs:", err);
-      setError(err.message || "Failed to load jobs");
+      if (err.name !== "AbortError")
+        setError(err.message || "Failed to load jobs");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSearchSubmit = (e) => {
-    e.preventDefault();
-    setFilters((prev) => ({ ...prev, search: searchInput }));
+  const handleSearch = () => {
+    setFilters((prev) => ({ ...prev, search: searchInput.trim() }));
     setPagination((prev) => ({ ...prev, page: 1 }));
   };
-
+  const handleSearchKeyPress = (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleSearch();
+    }
+  };
+  const handleClearSearch = () => {
+    setSearchInput("");
+    setFilters((prev) => ({ ...prev, search: "" }));
+    setPagination((prev) => ({ ...prev, page: 1 }));
+  };
   const handleFilterChange = (key, value) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
     setPagination((prev) => ({ ...prev, page: 1 }));
   };
-
   const handleJobClick = (jobId) => {
     const job = jobs.find((j) => j._id === jobId);
-    if (job) {
-      setSelectedJob(job);
-    }
+    if (job) setSelectedJob(job);
   };
-
   const handleApplySuccess = (jobId) => {
     setAppliedJobIds((prev) => new Set([...prev, jobId]));
-    fetchAppliedJobs(); // Refresh applied jobs
+    fetchAppliedJobs();
   };
-
-  const closeModal = () => {
-    setSelectedJob(null);
-  };
-
-  const goToPage = (page) => {
-    setPagination((prev) => ({ ...prev, page }));
-  };
-
+  const closeModal = () => setSelectedJob(null);
+  const goToPage = (page) => setPagination((prev) => ({ ...prev, page }));
   const nextPage = () => {
-    if (pagination.hasNextPage) {
+    if (pagination.hasNextPage)
       setPagination((prev) => ({ ...prev, page: prev.page + 1 }));
-    }
   };
-
   const prevPage = () => {
-    if (pagination.hasPrevPage) {
+    if (pagination.hasPrevPage)
       setPagination((prev) => ({ ...prev, page: prev.page - 1 }));
-    }
   };
-
-  const isActiveRoute = (path) => {
-    return location.pathname === path;
-  };
-
   const handleSetupSuccess = async () => {
     setShowSetupModal(false);
     await fetchApplicantProfile();
   };
 
-  if (authLoading || loading) {
+  if (authLoading)
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-chart-1 mx-auto"></div>
-          <p className="text-muted-foreground mt-4">Loading...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600 mx-auto"></div>
+          <p className="text-gray-500 mt-4">Loading...</p>
         </div>
       </div>
     );
-  }
 
   return (
     <>
       {(showSetupModal || !applicantProfile) && (
         <ApplicantProfileSetupModal onSuccess={handleSetupSuccess} />
       )}
-
       {selectedJob && (
         <JobModal
           job={selectedJob}
@@ -249,28 +201,44 @@ const JobSeekerDashboardPage = () => {
         />
       )}
 
-      <div className="min-h-screen bg-background">
-        {/* Header */}
-        <header className="bg-card border-b border-border sticky top-0 z-40">
+      <div className="min-h-screen bg-gray-50">
+        <header className="bg-white border-b border-gray-200 sticky top-0 z-40">
           <ApplicantNavbar />
         </header>
 
         <main className="p-6">
-          {/* Search and Filters */}
+          {/* Search */}
           <div className="mb-6 flex gap-3">
-            <form onSubmit={handleSearchSubmit} className="flex-1 relative">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-5 text-muted-foreground" />
+            <div className="flex-1 relative">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-5 text-gray-400" />
               <input
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
+                onKeyPress={handleSearchKeyPress}
                 placeholder="Search by job title or company name..."
-                className="w-full pl-12 pr-4 py-3 border border-border rounded-lg focus:outline-none focus:border-chart-1 focus:ring-1 focus:ring-chart-1 bg-card text-foreground"
+                className="w-full pl-12 pr-12 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 bg-white text-gray-900 placeholder-gray-400"
               />
-            </form>
+              {searchInput && (
+                <button
+                  onClick={handleClearSearch}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-900 p-1.5 rounded"
+                >
+                  <X className="size-5" />
+                </button>
+              )}
+            </div>
+
+            <button
+              onClick={handleSearch}
+              className="bg-emerald-600 text-white px-6 py-3 rounded-lg hover:bg-emerald-700 transition font-medium"
+            >
+              Search
+            </button>
+
             <button
               type="button"
               onClick={() => setShowFilters(!showFilters)}
-              className="md:hidden bg-chart-1 text-white px-4 py-3 rounded-lg hover:opacity-90"
+              className="md:hidden bg-emerald-600 text-white px-4 py-3 rounded-lg hover:bg-emerald-700"
             >
               <SlidersHorizontal className="size-5" />
             </button>
@@ -283,23 +251,22 @@ const JobSeekerDashboardPage = () => {
                 showFilters ? "block" : "hidden lg:block"
               }`}
             >
-              <div className="bg-card rounded-xl border border-border p-6 sticky top-24">
+              <div className="bg-white rounded-xl border border-gray-200 p-6 sticky top-24 shadow-sm">
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg text-foreground">Filters</h3>
+                  <h3 className="text-lg text-gray-900 font-medium">Filters</h3>
                   {showFilters && (
                     <button
                       onClick={() => setShowFilters(false)}
-                      className="lg:hidden p-1 hover:bg-accent rounded"
+                      className="lg:hidden p-1.5 rounded hover:bg-gray-100"
                     >
-                      <X className="w-5 h-5" />
+                      <X className="w-5 h-5 text-gray-500" />
                     </button>
                   )}
                 </div>
 
                 <div className="space-y-4">
-                  {/* Employment Type */}
                   <div>
-                    <label className="block text-sm text-foreground mb-2">
+                    <label className="block text-sm text-gray-900 mb-2">
                       Employment Type
                     </label>
                     <select
@@ -307,7 +274,7 @@ const JobSeekerDashboardPage = () => {
                       onChange={(e) =>
                         handleFilterChange("employmentType", e.target.value)
                       }
-                      className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:border-chart-1 bg-card text-foreground"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 bg-white text-gray-900 placeholder-gray-400"
                     >
                       <option value="">All Types</option>
                       <option value="full-time">Full-time</option>
@@ -317,9 +284,8 @@ const JobSeekerDashboardPage = () => {
                     </select>
                   </div>
 
-                  {/* Remote */}
                   <div>
-                    <label className="block text-sm text-foreground mb-2">
+                    <label className="block text-sm text-gray-900 mb-2">
                       Work Type
                     </label>
                     <select
@@ -327,7 +293,7 @@ const JobSeekerDashboardPage = () => {
                       onChange={(e) =>
                         handleFilterChange("remote", e.target.value)
                       }
-                      className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:border-chart-1 bg-card text-foreground"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 bg-white text-gray-900 placeholder-gray-400"
                     >
                       <option value="">All</option>
                       <option value="true">Remote</option>
@@ -335,9 +301,8 @@ const JobSeekerDashboardPage = () => {
                     </select>
                   </div>
 
-                  {/* Salary Range */}
                   <div>
-                    <label className="block text-sm text-foreground mb-2">
+                    <label className="block text-sm text-gray-900 mb-2">
                       Minimum Salary
                     </label>
                     <input
@@ -347,12 +312,12 @@ const JobSeekerDashboardPage = () => {
                         handleFilterChange("salaryMin", e.target.value)
                       }
                       placeholder="e.g., 30000"
-                      className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:border-chart-1 bg-card text-foreground"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 bg-white text-gray-900 placeholder-gray-400"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm text-foreground mb-2">
+                    <label className="block text-sm text-gray-900 mb-2">
                       Maximum Salary
                     </label>
                     <input
@@ -362,7 +327,7 @@ const JobSeekerDashboardPage = () => {
                         handleFilterChange("salaryMax", e.target.value)
                       }
                       placeholder="e.g., 80000"
-                      className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:border-chart-1 bg-card text-foreground"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 bg-white text-gray-900 placeholder-gray-400"
                     />
                   </div>
                 </div>
@@ -378,7 +343,6 @@ const JobSeekerDashboardPage = () => {
                 appliedJobIds={appliedJobIds}
                 onJobClick={handleJobClick}
               />
-
               {!loading && !error && jobs.length > 0 && (
                 <Pagination
                   pagination={pagination}
