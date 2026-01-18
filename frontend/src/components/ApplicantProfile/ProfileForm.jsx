@@ -31,7 +31,7 @@ const ProfileForm = ({ profile, onSave, updating }) => {
       setFormData({
         firstName: profile.firstName || "",
         lastName: profile.lastName || "",
-        email: user.email || "", // Email comes from user, not profile
+        email: user.email || "",
         phone: profile.phone || "",
         location: profile.location || "",
       });
@@ -40,23 +40,17 @@ const ProfileForm = ({ profile, onSave, updating }) => {
 
   const handleChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
-    if (errors[field]) {
-      setErrors((prev) => ({ ...prev, [field]: "" }));
-    }
+    if (errors[field]) setErrors((prev) => ({ ...prev, [field]: "" }));
   };
 
   const validate = () => {
     const newErrors = {};
 
-    if (!formData.firstName.trim()) {
-      newErrors.firstName = "First name is required";
-    }
-    if (!formData.lastName.trim()) {
-      newErrors.lastName = "Last name is required";
-    }
-    if (!formData.email.trim()) {
-      newErrors.email = "Email is required";
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+    if (!formData.firstName.trim()) newErrors.firstName = "First name is required";
+    if (!formData.lastName.trim()) newErrors.lastName = "Last name is required";
+
+    if (!formData.email.trim()) newErrors.email = "Email is required";
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       newErrors.email = "Invalid email format";
     }
 
@@ -71,8 +65,8 @@ const ProfileForm = ({ profile, onSave, updating }) => {
     setSuccess("");
 
     try {
-      // Separate email update from profile update
       const emailChanged = formData.email !== user.email;
+
       const profileData = {
         firstName: formData.firstName,
         lastName: formData.lastName,
@@ -80,10 +74,8 @@ const ProfileForm = ({ profile, onSave, updating }) => {
         location: formData.location,
       };
 
-      // Update profile fields (firstName, lastName, phone, location)
       const profileResult = await onSave(profileData);
 
-      // Update email separately if it changed
       if (emailChanged) {
         setSavingEmail(true);
         const emailResult = await authService.updateEmail(formData.email);
@@ -96,7 +88,6 @@ const ProfileForm = ({ profile, onSave, updating }) => {
       }
 
       if (profileResult?.success) {
-        // Refresh both user and profile data
         await refreshProfile();
         setEditing(false);
         setSuccess("Personal information updated successfully!");
@@ -105,7 +96,6 @@ const ProfileForm = ({ profile, onSave, updating }) => {
         setErrors({ general: profileResult.error });
       }
     } catch (error) {
-      console.error("Error saving personal info:", error);
       setErrors({ general: error.message || "Failed to save changes" });
     }
   };
@@ -122,24 +112,38 @@ const ProfileForm = ({ profile, onSave, updating }) => {
     setEditing(false);
   };
 
+  const FieldRow = ({ icon: Icon, value }) => (
+    <div className="flex items-center gap-2 text-gray-800">
+      <Icon className="w-4 h-4 text-gray-500" />
+      <span className="text-sm">{value}</span>
+    </div>
+  );
+
   return (
     <div className="space-y-6">
-      {/* Success Message */}
       {success && (
-        <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-lg flex items-center gap-2">
-          <CheckCircle className="w-5 h-5 text-emerald-600 flex-shrink-0" />
-          <p className="text-sm text-emerald-700">{success}</p>
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 flex items-start gap-3">
+          <CheckCircle className="w-5 h-5 text-emerald-700 mt-0.5 flex-shrink-0" />
+          <p className="text-sm text-emerald-800">{success}</p>
         </div>
       )}
 
-      {/* Personal Information Card */}
-      <div className="bg-card rounded-xl border border-border p-6">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-lg text-foreground">Personal Information</h2>
+      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+        <div className="flex items-start justify-between gap-4 mb-6">
+          <div>
+            <h2 className="text-lg text-gray-900 font-medium">
+              Personal Information
+            </h2>
+            <p className="text-sm text-gray-600 mt-1">
+              Keep your information accurate to help employers contact you.
+            </p>
+          </div>
+
           {!editing && (
             <button
+              type="button"
               onClick={() => setEditing(true)}
-              className="flex items-center gap-2 px-4 py-2 border border-border rounded-lg hover:bg-accent transition-colors text-sm"
+              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 transition text-sm"
             >
               <Edit2 className="w-4 h-4" />
               Edit
@@ -148,16 +152,15 @@ const ProfileForm = ({ profile, onSave, updating }) => {
         </div>
 
         {errors.general && (
-          <div className="mb-4 p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
-            <p className="text-sm text-destructive">{errors.general}</p>
+          <div className="mb-4 rounded-2xl border border-red-200 bg-red-50 p-4">
+            <p className="text-sm text-red-800">{errors.general}</p>
           </div>
         )}
 
         <div className="space-y-4">
-          {/* First Name */}
           <div>
-            <label className="block text-sm text-foreground mb-2">
-              First Name <span className="text-destructive">*</span>
+            <label className="block text-sm text-gray-900 font-medium mb-2">
+              First Name <span className="text-red-600">*</span>
             </label>
             {editing ? (
               <>
@@ -165,27 +168,21 @@ const ProfileForm = ({ profile, onSave, updating }) => {
                   type="text"
                   value={formData.firstName}
                   onChange={(e) => handleChange("firstName", e.target.value)}
-                  className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:border-chart-1 focus:ring-1 focus:ring-chart-1 bg-input-background text-foreground"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 bg-white"
                   disabled={updating || savingEmail}
                 />
                 {errors.firstName && (
-                  <p className="text-sm text-destructive mt-1">
-                    {errors.firstName}
-                  </p>
+                  <p className="text-sm text-red-600 mt-1">{errors.firstName}</p>
                 )}
               </>
             ) : (
-              <div className="flex items-center gap-2 text-foreground">
-                <User className="w-4 h-4 text-muted-foreground" />
-                {profile?.firstName || "Not provided"}
-              </div>
+              <FieldRow icon={User} value={profile?.firstName || "Not provided"} />
             )}
           </div>
 
-          {/* Last Name */}
           <div>
-            <label className="block text-sm text-foreground mb-2">
-              Last Name <span className="text-destructive">*</span>
+            <label className="block text-sm text-gray-900 font-medium mb-2">
+              Last Name <span className="text-red-600">*</span>
             </label>
             {editing ? (
               <>
@@ -193,27 +190,21 @@ const ProfileForm = ({ profile, onSave, updating }) => {
                   type="text"
                   value={formData.lastName}
                   onChange={(e) => handleChange("lastName", e.target.value)}
-                  className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:border-chart-1 focus:ring-1 focus:ring-chart-1 bg-input-background text-foreground"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 bg-white"
                   disabled={updating || savingEmail}
                 />
                 {errors.lastName && (
-                  <p className="text-sm text-destructive mt-1">
-                    {errors.lastName}
-                  </p>
+                  <p className="text-sm text-red-600 mt-1">{errors.lastName}</p>
                 )}
               </>
             ) : (
-              <div className="flex items-center gap-2 text-foreground">
-                <User className="w-4 h-4 text-muted-foreground" />
-                {profile?.lastName || "Not provided"}
-              </div>
+              <FieldRow icon={User} value={profile?.lastName || "Not provided"} />
             )}
           </div>
 
-          {/* Email */}
           <div>
-            <label className="block text-sm text-foreground mb-2">
-              Email <span className="text-destructive">*</span>
+            <label className="block text-sm text-gray-900 font-medium mb-2">
+              Email <span className="text-red-600">*</span>
             </label>
             {editing ? (
               <>
@@ -221,46 +212,38 @@ const ProfileForm = ({ profile, onSave, updating }) => {
                   type="email"
                   value={formData.email}
                   onChange={(e) => handleChange("email", e.target.value)}
-                  className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:border-chart-1 focus:ring-1 focus:ring-chart-1 bg-input-background text-foreground"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 bg-white"
                   disabled={updating || savingEmail}
                 />
                 {errors.email && (
-                  <p className="text-sm text-destructive mt-1">
-                    {errors.email}
-                  </p>
+                  <p className="text-sm text-red-600 mt-1">{errors.email}</p>
                 )}
               </>
             ) : (
-              <div className="flex items-center gap-2 text-foreground">
-                <Mail className="w-4 h-4 text-muted-foreground" />
-                {user?.email || "Not provided"}
-              </div>
+              <FieldRow icon={Mail} value={user?.email || "Not provided"} />
             )}
           </div>
 
-          {/* Phone */}
           <div>
-            <label className="block text-sm text-foreground mb-2">Phone</label>
+            <label className="block text-sm text-gray-900 font-medium mb-2">
+              Phone
+            </label>
             {editing ? (
               <input
                 type="tel"
                 value={formData.phone}
                 onChange={(e) => handleChange("phone", e.target.value)}
                 placeholder="+1 234 567 8900"
-                className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:border-chart-1 focus:ring-1 focus:ring-chart-1 bg-input-background text-foreground"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 bg-white"
                 disabled={updating || savingEmail}
               />
             ) : (
-              <div className="flex items-center gap-2 text-foreground">
-                <Phone className="w-4 h-4 text-muted-foreground" />
-                {profile?.phone || "Not provided"}
-              </div>
+              <FieldRow icon={Phone} value={profile?.phone || "Not provided"} />
             )}
           </div>
 
-          {/* Location */}
           <div>
-            <label className="block text-sm text-foreground mb-2">
+            <label className="block text-sm text-gray-900 font-medium mb-2">
               Location
             </label>
             {editing ? (
@@ -269,32 +252,32 @@ const ProfileForm = ({ profile, onSave, updating }) => {
                 value={formData.location}
                 onChange={(e) => handleChange("location", e.target.value)}
                 placeholder="San Francisco, CA"
-                className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:border-chart-1 focus:ring-1 focus:ring-chart-1 bg-input-background text-foreground"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 bg-white"
                 disabled={updating || savingEmail}
               />
             ) : (
-              <div className="flex items-center gap-2 text-foreground">
-                <MapPin className="w-4 h-4 text-muted-foreground" />
-                {profile?.location || "Not provided"}
-              </div>
+              <FieldRow icon={MapPin} value={profile?.location || "Not provided"} />
             )}
           </div>
         </div>
 
         {editing && (
-          <div className="flex items-center gap-3 mt-6 pt-6 border-t border-border">
+          <div className="flex items-center gap-3 mt-6 pt-6 border-t border-gray-200">
             <button
+              type="button"
               onClick={handleCancel}
               disabled={updating || savingEmail}
-              className="px-6 py-3 border border-border rounded-lg hover:bg-accent transition-colors disabled:opacity-50"
+              className="px-6 py-3 rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 transition disabled:opacity-50"
             >
               <X className="w-4 h-4 inline mr-2" />
               Cancel
             </button>
+
             <button
+              type="button"
               onClick={handleSavePersonalInfo}
               disabled={updating || savingEmail}
-              className="px-6 py-3 bg-chart-1 text-white rounded-lg hover:opacity-90 transition-colors disabled:opacity-50"
+              className="px-6 py-3 rounded-lg bg-emerald-600 text-white font-medium hover:bg-emerald-700 transition disabled:opacity-50"
             >
               <Save className="w-4 h-4 inline mr-2" />
               {updating || savingEmail ? "Saving..." : "Save Changes"}

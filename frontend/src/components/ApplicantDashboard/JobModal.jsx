@@ -6,6 +6,7 @@ import {
   Building,
   CheckCircle,
   AlertCircle,
+  FileText,
 } from "lucide-react";
 import applicationsApiService from "../../services/applicationsService";
 import applicantProfileService from "../../services/applicantProfileService";
@@ -17,6 +18,8 @@ const JobModal = ({ job, onClose, isApplied = false, onApplySuccess }) => {
   const [success, setSuccess] = useState("");
   const [userProfile, setUserProfile] = useState(null);
   const [loadingProfile, setLoadingProfile] = useState(true);
+  const [coverLetterInput, setCoverLetterInput] = useState("");
+  const [hasEditedCoverLetter, setHasEditedCoverLetter] = useState(false);
 
   useEffect(() => {
     document.body.style.overflow = "hidden";
@@ -37,11 +40,27 @@ const JobModal = ({ job, onClose, isApplied = false, onApplySuccess }) => {
     setApplied(isApplied);
   }, [isApplied]);
 
+  useEffect(() => {
+    if (!job) return;
+    setCoverLetterInput("");
+    setHasEditedCoverLetter(false);
+    setError("");
+    setSuccess("");
+  }, [job]);
+
   const fetchUserProfile = async () => {
     try {
       setLoadingProfile(true);
       const response = await applicantProfileService.getProfile();
-      if (response.success && response.data) setUserProfile(response.data);
+
+      if (response.success && response.data) {
+        setUserProfile(response.data);
+
+        setCoverLetterInput((current) => {
+          if (hasEditedCoverLetter) return current;
+          return response.data.coverLetter || "";
+        });
+      }
     } catch (err) {
       console.error("Error fetching profile:", err);
       setError("Please complete your profile before applying");
@@ -69,7 +88,8 @@ const JobModal = ({ job, onClose, isApplied = false, onApplySuccess }) => {
 
     try {
       const resumeId = userProfile.resumes[0]._id;
-      const coverLetter = userProfile.coverLetter || "";
+      const coverLetter = coverLetterInput || "";
+
       const response = await applicationsApiService.applyToJob(
         job._id,
         resumeId,
@@ -84,6 +104,7 @@ const JobModal = ({ job, onClose, isApplied = false, onApplySuccess }) => {
       }
     } catch (err) {
       console.error("Error applying to job:", err);
+
       if (err.message.includes("already applied")) {
         setError("You have already applied to this position");
         setApplied(true);
@@ -130,183 +151,270 @@ const JobModal = ({ job, onClose, isApplied = false, onApplySuccess }) => {
 
   return (
     <div
-      className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto"
+      className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto"
       onClick={onClose}
     >
       <div
-        className="bg-gray-900 rounded-2xl max-w-3xl w-full my-8 max-h-[90vh] overflow-y-auto shadow-2xl border border-gray-700 ring-1 ring-black/20"
+        className="bg-white rounded-2xl max-w-5xl w-full my-8 h-[92vh] flex flex-col shadow-2xl border border-gray-200 ring-1 ring-black/5"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
-        <div className="sticky top-0 bg-gray-900/95 backdrop-blur border-b border-gray-700 p-6 flex items-start justify-between">
-          <div className="flex-1 pr-4">
-            <h2 className="text-2xl font-semibold text-white mb-2">
+        <div className="shrink-0 bg-white/95 backdrop-blur border-b border-gray-200 p-6 flex items-start justify-between">
+          <div className="flex-1 pr-4 min-w-0">
+            <h2 className="text-2xl text-gray-900 font-medium mb-2 truncate">
               {job.title}
             </h2>
-            <div className="flex items-center gap-3 text-gray-400">
+
+            <div className="flex items-center gap-3 text-gray-600">
               {job.company?.logo?.url ? (
                 <img
                   src={job.company.logo.url}
                   alt={job.company.companyName}
-                  className="w-8 h-8 rounded object-cover"
+                  className="w-9 h-9 rounded-lg object-cover border border-gray-200"
                 />
               ) : (
-                <Building className="w-5 h-5 text-gray-400" />
+                <div className="w-9 h-9 rounded-lg bg-emerald-50 border border-emerald-100 flex items-center justify-center">
+                  <Building className="w-5 h-5 text-emerald-700" />
+                </div>
               )}
-              <span className="text-lg text-white">
+              <span className="text-base text-gray-900 font-medium truncate">
                 {job.company?.companyName || "Company"}
               </span>
             </div>
           </div>
+
           <button
             onClick={onClose}
-            className="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors"
+            className="p-2 rounded-lg text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition"
+            type="button"
           >
             <X className="w-6 h-6" />
           </button>
         </div>
 
-        {/* Content */}
-        <div className="p-6 space-y-6">
+        <div className="flex-1 p-6 space-y-6 overflow-y-auto">
           {success && (
-            <div className="bg-emerald-700/20 border border-emerald-600 rounded-lg p-4 flex items-center gap-3">
-              <CheckCircle className="w-5 h-5 text-emerald-500 flex-shrink-0" />
-              <p className="text-sm text-emerald-200">{success}</p>
+            <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 flex items-start gap-3">
+              <CheckCircle className="w-5 h-5 text-emerald-700 mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="text-sm text-emerald-800 font-medium">
+                  {success}
+                </p>
+                <p className="text-sm text-emerald-700 mt-1">
+                  You can track this application in{" "}
+                  <span className="font-medium">My Applications</span>.
+                </p>
+              </div>
             </div>
           )}
 
           {error && (
-            <div className="bg-red-700/20 border border-red-600 rounded-lg p-4 flex items-center gap-3">
-              <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
-              <p className="text-sm text-red-200">{error}</p>
+            <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-red-700 mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="text-sm text-red-800 font-medium">{error}</p>
+                <p className="text-sm text-red-700 mt-1">
+                  Update your profile or resume to proceed.
+                </p>
+              </div>
             </div>
           )}
 
-          {/* Job Details */}
-          <div className="flex flex-wrap gap-4 text-sm text-gray-300">
-            <div className="flex items-center gap-2">
-              <MapPin className="w-5 h-5 text-gray-400" />
-              <span>{job.location}</span>
-              {job.remote && (
-                <span className="ml-1 px-2 py-0.5 bg-emerald-700/20 text-emerald-200 text-xs rounded-full">
-                  Remote
+          <div className="bg-gray-50 border border-gray-200 rounded-2xl p-4">
+            <div className="flex flex-wrap gap-3 text-sm text-gray-700">
+              <div className="flex items-center gap-2">
+                <MapPin className="w-5 h-5 text-gray-500" />
+                <span className="text-gray-900 font-medium">
+                  {job.location}
                 </span>
-              )}
-            </div>
-            <div className="flex items-center gap-2">
-              <span>{formatSalary(job.salaryRange)}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Clock className="w-5 h-5 text-gray-400" />
-              <span>
-                {employmentTypeLabels[job.employmentType] || job.employmentType}
-              </span>
+                {job.remote && (
+                  <span className="ml-1 px-2 py-0.5 bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200 text-xs rounded-full">
+                    Remote
+                  </span>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="text-gray-600">Salary:</span>
+                <span className="text-gray-900 font-medium">
+                  {formatSalary(job.salaryRange)}
+                </span>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Clock className="w-5 h-5 text-gray-500" />
+                <span className="text-gray-900 font-medium">
+                  {employmentTypeLabels[job.employmentType] ||
+                    job.employmentType}
+                </span>
+              </div>
             </div>
           </div>
 
           {applied && (
-            <div className="bg-emerald-700/20 border border-emerald-600 rounded-lg p-4">
-              <p className="text-sm text-emerald-200 font-medium flex items-center gap-2">
-                <CheckCircle className="w-5 h-5" />
+            <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4">
+              <p className="text-sm text-emerald-800 font-medium flex items-center gap-2">
+                <CheckCircle className="w-5 h-5 text-emerald-700" />
                 You have already applied to this position
               </p>
             </div>
           )}
 
-          {/* Job Description */}
-          <div>
-            <h3 className="text-lg font-medium text-white mb-3">
-              Job Description
-            </h3>
-            <div className="text-gray-300 whitespace-pre-line leading-relaxed">
-              {job.description}
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 flex-1 items-stretch min-h-[520px]">
+            <div className="lg:col-span-3 space-y-6 min-h-0">
+              <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-5">
+                <h3 className="text-lg font-medium text-gray-900 mb-3">
+                  Job Description
+                </h3>
+                <div className="text-gray-600 whitespace-pre-line leading-relaxed text-sm">
+                  {job.description}
+                </div>
+              </div>
+
+              {job.requirements && (
+                <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-5">
+                  <h3 className="text-lg font-medium text-gray-900 mb-3">
+                    Requirements
+                  </h3>
+
+                  {job.requirements.skills &&
+                    job.requirements.skills.length > 0 && (
+                      <div className="mb-4">
+                        <h4 className="text-sm font-medium text-gray-900 mb-2">
+                          Required Skills
+                        </h4>
+                        <div className="flex flex-wrap gap-2">
+                          {job.requirements.skills.map((skill, index) => (
+                            <span
+                              key={index}
+                              className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm"
+                            >
+                              {skill}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {job.requirements.experienceYears && (
+                      <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
+                        <p className="text-xs text-gray-500">Experience</p>
+                        <p className="text-sm text-gray-900 font-medium mt-1">
+                          {job.requirements.experienceYears} years
+                        </p>
+                      </div>
+                    )}
+
+                    {job.requirements.educationLevel && (
+                      <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
+                        <p className="text-xs text-gray-500">Education</p>
+                        <p className="text-sm text-gray-900 font-medium mt-1">
+                          {job.requirements.educationLevel}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              <div className="bg-emerald-700 text-white rounded-2xl p-5">
+                <p className="text-sm text-emerald-100">
+                  Tip: Tailor your cover letter to the role—mention specific
+                  skills the job requires and how you’ve used them.
+                </p>
+              </div>
+
+              {job.company?.description && (
+                <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-5">
+                  <h3 className="text-lg font-medium text-gray-900 mb-3">
+                    About the Company
+                  </h3>
+                  <p className="text-gray-600 leading-relaxed text-sm">
+                    {job.company.description}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div className="lg:col-span-2 min-h-0">
+              <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-5 h-full flex flex-col min-h-0">
+                <div className="flex items-center gap-2 mb-3">
+                  <FileText className="w-5 h-5 text-emerald-700" />
+                  <h3 className="text-lg font-medium text-gray-900">
+                    Cover Letter
+                  </h3>
+                </div>
+
+                <p className="text-sm text-gray-600 mb-4">
+                  Write a brief message to the employer. This will be sent with
+                  your application.
+                </p>
+
+                <textarea
+                  value={coverLetterInput}
+                  onChange={(e) => {
+                    setHasEditedCoverLetter(true);
+                    setCoverLetterInput(e.target.value);
+                  }}
+                  placeholder="Introduce yourself, highlight relevant experience, and explain why you’re a good fit..."
+                  className="w-full flex-1 min-h-[260px] px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 bg-white text-gray-900 placeholder-gray-400 resize-none"
+                  disabled={applied || applying}
+                />
+
+                <p className="mt-3 text-xs text-gray-500 leading-relaxed">
+                  Your primary resume from your profile will be automatically
+                  attached and sent to the employer together with this
+                  application.
+                </p>
+
+                <div className="mt-3 flex items-center justify-between">
+                  <p className="text-xs text-gray-500">
+                    {coverLetterInput?.length || 0} characters
+                  </p>
+
+                  {!userProfile?.resumes?.length && !loadingProfile && (
+                    <p className="text-xs text-red-700">
+                      Upload a resume to enable Apply.
+                    </p>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* Requirements */}
-          {job.requirements && (
-            <div>
-              <h3 className="text-lg font-medium text-white mb-3">
-                Requirements
-              </h3>
-
-              {job.requirements.skills &&
-                job.requirements.skills.length > 0 && (
-                  <div className="mb-4">
-                    <h4 className="text-sm font-medium text-white mb-2">
-                      Required Skills
-                    </h4>
-                    <div className="flex flex-wrap gap-2">
-                      {job.requirements.skills.map((skill, index) => (
-                        <span
-                          key={index}
-                          className="px-3 py-1 bg-gray-800 text-gray-300 rounded-lg text-sm"
-                        >
-                          {skill}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-              {job.requirements.experienceYears && (
-                <div className="mb-4">
-                  <h4 className="text-sm font-medium text-white mb-1">
-                    Experience
-                  </h4>
-                  <p className="text-gray-300">
-                    {job.requirements.experienceYears} years
-                  </p>
-                </div>
-              )}
-
-              {job.requirements.educationLevel && (
-                <div>
-                  <h4 className="text-sm font-medium text-white mb-1">
-                    Education
-                  </h4>
-                  <p className="text-gray-300">
-                    {job.requirements.educationLevel}
-                  </p>
-                </div>
-              )}
-            </div>
-          )}
-
-          {job.company?.description && (
-            <div>
-              <h3 className="text-lg font-medium text-white mb-3">
-                About the Company
-              </h3>
-              <p className="text-gray-300 leading-relaxed">
-                {job.company.description}
-              </p>
-            </div>
-          )}
+          <div className="h-6" />
         </div>
 
-        {/* Footer */}
-        <div className="sticky bottom-0 bg-gray-900/95 backdrop-blur border-t border-gray-700 p-6 flex items-center justify-end gap-3">
+        <div className="shrink-0 bg-white/95 backdrop-blur border-t border-gray-200 p-5 flex items-center justify-between gap-3">
           <button
             onClick={onClose}
-            className="px-6 py-3 rounded-lg border border-gray-700 text-white hover:bg-gray-800 transition-colors"
+            className="px-5 py-3 rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 transition"
+            type="button"
           >
             Close
           </button>
 
-          {!applied && (
-            <button
-              onClick={handleApply}
-              disabled={!canApply || applying}
-              className="px-6 py-3 rounded-lg bg-emerald-600 text-white font-medium hover:bg-emerald-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loadingProfile
-                ? "Loading..."
-                : applying
-                ? "Submitting..."
-                : "Apply Now"}
-            </button>
-          )}
+          <div className="flex items-center gap-3">
+            {applied ? (
+              <span className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-50 text-emerald-800 ring-1 ring-emerald-200 text-sm font-medium">
+                <CheckCircle className="w-4 h-4 text-emerald-700" />
+                Applied
+              </span>
+            ) : (
+              <button
+                onClick={handleApply}
+                disabled={!canApply || applying}
+                className="px-6 py-3 rounded-lg bg-emerald-600 text-white font-medium hover:bg-emerald-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                type="button"
+              >
+                {loadingProfile
+                  ? "Loading..."
+                  : applying
+                  ? "Submitting..."
+                  : "Apply Now"}
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>

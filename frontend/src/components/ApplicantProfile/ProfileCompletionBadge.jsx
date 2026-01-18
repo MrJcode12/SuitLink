@@ -1,4 +1,3 @@
-// frontend/src/components/ApplicantProfile/ProfileCompletionBadge.jsx
 import { CheckCircle, AlertCircle, TrendingUp } from "lucide-react";
 
 const ProfileCompletionBadge = ({ profile }) => {
@@ -6,34 +5,13 @@ const ProfileCompletionBadge = ({ profile }) => {
     if (!profile) return { percentage: 0, completed: 0, total: 0, items: [] };
 
     const items = [
-      {
-        label: "Personal Information",
-        completed: !!(profile.firstName && profile.lastName),
-      },
-      {
-        label: "Contact Information",
-        completed: !!(profile.phone && profile.location),
-      },
-      {
-        label: "Resume",
-        completed: !!(profile.resumes && profile.resumes.length > 0),
-      },
-      {
-        label: "Resume Analysis",
-        completed: !!(profile.resumeAnalysis && profile.resumeAnalysis.score),
-      },
-      {
-        label: "Skills",
-        completed: !!(profile.skills && profile.skills.length > 0),
-      },
-      {
-        label: "Experience",
-        completed: !!(profile.experience && profile.experience.length > 0),
-      },
-      {
-        label: "Education",
-        completed: !!(profile.education && profile.education.length > 0),
-      },
+      { label: "Personal Information", completed: !!(profile.firstName && profile.lastName) },
+      { label: "Contact Information", completed: !!(profile.phone && profile.location) },
+      { label: "Resume", completed: !!(profile.resumes && profile.resumes.length > 0) },
+      { label: "Resume Analysis", completed: !!(profile.resumeAnalysis && profile.resumeAnalysis.score) },
+      { label: "Skills", completed: !!(profile.skills && profile.skills.length > 0) },
+      { label: "Experience", completed: !!(profile.experience && profile.experience.length > 0) },
+      { label: "Education", completed: !!(profile.education && profile.education.length > 0) },
     ];
 
     const completed = items.filter((item) => item.completed).length;
@@ -54,32 +32,40 @@ const ProfileCompletionBadge = ({ profile }) => {
 
   const color = getCompletionColor(completion.percentage);
 
+  const colorStyles = {
+    emerald: { icon: "text-emerald-600", text: "text-emerald-700", bar: "bg-emerald-600" },
+    blue: { icon: "text-blue-600", text: "text-blue-700", bar: "bg-blue-600" },
+    yellow: { icon: "text-yellow-600", text: "text-yellow-700", bar: "bg-yellow-500" },
+    red: { icon: "text-red-600", text: "text-red-700", bar: "bg-red-600" },
+  };
+
+  const cs = colorStyles[color];
+
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-6">
+    <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-lg text-gray-900 font-medium">Profile Strength</h2>
-        <TrendingUp className={`w-5 h-5 text-${color}-600`} />
+        <TrendingUp className={`w-5 h-5 ${cs.icon}`} />
       </div>
 
-      {/* Progress Bar */}
       <div className="mb-6">
         <div className="flex items-center justify-between mb-2">
           <span className="text-sm text-gray-600">
             {completion.completed} of {completion.total} completed
           </span>
-          <span className={`text-sm font-medium text-${color}-600`}>
+          <span className={`text-sm font-medium ${cs.text}`}>
             {completion.percentage}%
           </span>
         </div>
+
         <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
           <div
-            className={`h-full bg-${color}-600 transition-all duration-500`}
+            className={`h-full ${cs.bar} transition-all duration-500`}
             style={{ width: `${completion.percentage}%` }}
           />
         </div>
       </div>
 
-      {/* Completion Items */}
       <div className="space-y-2">
         {completion.items.map((item, index) => (
           <div key={index} className="flex items-center gap-2 text-sm">
@@ -88,20 +74,17 @@ const ProfileCompletionBadge = ({ profile }) => {
             ) : (
               <AlertCircle className="w-4 h-4 text-gray-400 flex-shrink-0" />
             )}
-            <span
-              className={item.completed ? "text-gray-900" : "text-gray-500"}
-            >
+            <span className={item.completed ? "text-gray-900" : "text-gray-500"}>
               {item.label}
             </span>
           </div>
         ))}
       </div>
 
-      {/* Credibility Badge */}
       {completion.percentage >= 80 && (
         <div className="mt-6 pt-6 border-t border-gray-200">
-          <div className="flex items-center gap-3 p-3 bg-emerald-50 border border-emerald-200 rounded-lg">
-            <div className="w-10 h-10 rounded-full bg-emerald-600 flex items-center justify-center flex-shrink-0">
+          <div className="flex items-center gap-3 p-4 bg-emerald-50 border border-emerald-200 rounded-2xl">
+            <div className="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center flex-shrink-0">
               <CheckCircle className="w-6 h-6 text-white" />
             </div>
             <div>
@@ -109,14 +92,13 @@ const ProfileCompletionBadge = ({ profile }) => {
                 Verified Profile
               </p>
               <p className="text-xs text-emerald-700">
-                Your profile is complete and stands out to employers
+                Your profile is strong and stands out to employers.
               </p>
             </div>
           </div>
         </div>
       )}
 
-      {/* Suggestions */}
       {completion.percentage < 100 && (
         <div className="mt-6 pt-6 border-t border-gray-200">
           <p className="text-sm font-medium text-gray-900 mb-2">

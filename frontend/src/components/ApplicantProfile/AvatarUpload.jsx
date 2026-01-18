@@ -15,13 +15,11 @@ const AvatarUpload = ({ profile, onUpload, uploading }) => {
     setError("");
     setSuccess("");
 
-    // Validate file type
     if (!file.type.startsWith("image/")) {
       setError("Only image files are allowed");
       return;
     }
 
-    // Validate file size (5MB)
     if (file.size > 5 * 1024 * 1024) {
       setError("File size must be less than 5MB");
       return;
@@ -32,16 +30,12 @@ const AvatarUpload = ({ profile, onUpload, uploading }) => {
     if (result?.success) {
       setSuccess("Profile photo updated successfully!");
       setTimeout(() => setSuccess(""), 3000);
-      // Refresh profile context to update navbar
       await refreshProfile();
     } else {
       setError(result?.error || "Failed to upload photo");
     }
 
-    // Reset file input
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   const profileImageUrl = profile?.profileImage?.url;
@@ -50,42 +44,47 @@ const AvatarUpload = ({ profile, onUpload, uploading }) => {
   }`.toUpperCase();
 
   return (
-    <div className="bg-card rounded-xl border border-border p-6">
-      <h2 className="text-lg text-foreground mb-4">Profile Photo</h2>
+    <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-6">
+      <div className="flex items-start justify-between gap-4 mb-4">
+        <div>
+          <h2 className="text-lg text-gray-900 font-medium">Profile Photo</h2>
+          <p className="text-sm text-gray-600 mt-1">
+            Upload a professional photo to help employers recognize you.
+          </p>
+        </div>
+      </div>
 
-      {/* Success Message */}
       {success && (
-        <div className="mb-4 p-3 bg-emerald-50 border border-emerald-200 rounded-lg flex items-center gap-2">
-          <CheckCircle className="w-5 h-5 text-emerald-600 flex-shrink-0" />
-          <p className="text-sm text-emerald-700">{success}</p>
+        <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4 flex items-start gap-3">
+          <CheckCircle className="w-5 h-5 text-emerald-700 mt-0.5 flex-shrink-0" />
+          <p className="text-sm text-emerald-800">{success}</p>
         </div>
       )}
 
-      {/* Error Message */}
       {error && (
-        <div className="mb-4 p-3 bg-destructive/10 border border-destructive/20 rounded-lg flex items-center gap-2">
-          <AlertCircle className="w-5 h-5 text-destructive flex-shrink-0" />
-          <p className="text-sm text-destructive">{error}</p>
+        <div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-4 flex items-start gap-3">
+          <AlertCircle className="w-5 h-5 text-red-700 mt-0.5 flex-shrink-0" />
+          <p className="text-sm text-red-800">{error}</p>
         </div>
       )}
 
-      <div className="flex items-center gap-6">
-        {/* Avatar Display */}
-        <div className="w-24 h-24 rounded-full overflow-hidden bg-chart-1/10 flex items-center justify-center flex-shrink-0 border-2 border-border">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-5">
+        <div className="w-24 h-24 rounded-2xl overflow-hidden bg-emerald-50 border border-emerald-100 flex items-center justify-center flex-shrink-0">
           {profileImageUrl ? (
             <img
               src={profileImageUrl}
               alt="Profile"
               className="w-full h-full object-cover"
             />
-          ) : (
-            <span className="text-2xl font-medium text-chart-1">
-              {initials || <User className="w-10 h-10" />}
+          ) : initials ? (
+            <span className="text-2xl font-semibold text-emerald-700">
+              {initials}
             </span>
+          ) : (
+            <User className="w-10 h-10 text-emerald-700" />
           )}
         </div>
 
-        {/* Upload Button */}
         <div className="flex-1">
           <input
             ref={fileInputRef}
@@ -95,21 +94,24 @@ const AvatarUpload = ({ profile, onUpload, uploading }) => {
             className="hidden"
             disabled={uploading}
           />
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            disabled={uploading}
-            className="px-4 py-2 border border-border rounded-lg hover:bg-accent transition-colors flex items-center gap-2 disabled:opacity-50"
-          >
-            <Upload className="w-4 h-4" />
-            {uploading
-              ? "Uploading..."
-              : profileImageUrl
-              ? "Change Photo"
-              : "Upload Photo"}
-          </button>
-          <p className="text-xs text-muted-foreground mt-2">
-            JPG, PNG or GIF. Max size 5MB.
-          </p>
+
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
+              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 transition disabled:opacity-50"
+            >
+              <Upload className="w-4 h-4" />
+              {uploading
+                ? "Uploading..."
+                : profileImageUrl
+                ? "Change Photo"
+                : "Upload Photo"}
+            </button>
+
+            <p className="text-xs text-gray-500">JPG, PNG, or GIF (max 5MB)</p>
+          </div>
         </div>
       </div>
     </div>

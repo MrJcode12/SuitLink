@@ -16,6 +16,7 @@ const JobSeekerDashboardPage = () => {
   const location = useLocation();
   const { user, loading: authLoading, isApplicant } = useAuth();
 
+  const [bookmarkedJobIds, setBookmarkedJobIds] = useState(new Set());
   const [applicantProfile, setApplicantProfile] = useState(null);
   const [showSetupModal, setShowSetupModal] = useState(false);
   const [jobs, setJobs] = useState([]);
@@ -78,6 +79,18 @@ const JobSeekerDashboardPage = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleBookmarkToggle = (jobId) => {
+    setBookmarkedJobIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(jobId)) {
+        next.delete(jobId);
+      } else {
+        next.add(jobId);
+      }
+      return next;
+    });
   };
 
   const fetchAppliedJobs = async () => {
@@ -176,6 +189,17 @@ const JobSeekerDashboardPage = () => {
     setShowSetupModal(false);
     await fetchApplicantProfile();
   };
+  const handleResetFilters = () => {
+    setFilters({
+      search: "",
+      employmentType: "",
+      remote: "",
+      salaryMin: "",
+      salaryMax: "",
+    });
+    setSearchInput(""); // Also clear the search input
+    setPagination((prev) => ({ ...prev, page: 1 }));
+  };
 
   if (authLoading)
     return (
@@ -200,160 +224,202 @@ const JobSeekerDashboardPage = () => {
           onApplySuccess={handleApplySuccess}
         />
       )}
-
       <div className="min-h-screen bg-gray-50">
         <header className="bg-white border-b border-gray-200 sticky top-0 z-40">
           <ApplicantNavbar />
         </header>
 
-        <main className="p-6">
-          {/* Search */}
-          <div className="mb-6 flex gap-3">
-            <div className="flex-1 relative">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-5 text-gray-400" />
-              <input
-                value={searchInput}
-                onChange={(e) => setSearchInput(e.target.value)}
-                onKeyPress={handleSearchKeyPress}
-                placeholder="Search by job title or company name..."
-                className="w-full pl-12 pr-12 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 bg-white text-gray-900 placeholder-gray-400"
-              />
-              {searchInput && (
-                <button
-                  onClick={handleClearSearch}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-900 p-1.5 rounded"
+        <div className="flex w-full">
+          {/* Sidebar */}
+          <aside
+            className={`
+        hidden lg:flex
+        flex-col
+        w-72
+        h-[calc(100vh-4rem)]
+        bg-white
+        border-r border-gray-200
+        p-6
+        sticky top-16
+        overflow-y-auto
+      `}
+          >
+            <h3 className="text-lg text-gray-900 font-medium mb-4">Filters</h3>
+            <div className="space-y-4 flex-1">
+              {/* Employment Type */}
+              <div>
+                <label className="block text-sm text-gray-900 mb-2">
+                  Employment Type
+                </label>
+                <select
+                  value={filters.employmentType}
+                  onChange={(e) =>
+                    handleFilterChange("employmentType", e.target.value)
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 bg-white text-gray-900 placeholder-gray-400"
                 >
-                  <X className="size-5" />
-                </button>
-              )}
-            </div>
+                  <option value="">All Types</option>
+                  <option value="full-time">Full-time</option>
+                  <option value="part-time">Part-time</option>
+                  <option value="contract">Contract</option>
+                  <option value="internship">Internship</option>
+                </select>
+              </div>
 
-            <button
-              onClick={handleSearch}
-              className="bg-emerald-600 text-white px-6 py-3 rounded-lg hover:bg-emerald-700 transition font-medium"
-            >
-              Search
-            </button>
+              {/* Work Type */}
+              <div>
+                <label className="block text-sm text-gray-900 mb-2">
+                  Work Type
+                </label>
+                <select
+                  value={filters.remote}
+                  onChange={(e) => handleFilterChange("remote", e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 bg-white text-gray-900 placeholder-gray-400"
+                >
+                  <option value="">All</option>
+                  <option value="true">Remote</option>
+                  <option value="false">On-site</option>
+                </select>
+              </div>
 
-            <button
-              type="button"
-              onClick={() => setShowFilters(!showFilters)}
-              className="md:hidden bg-emerald-600 text-white px-4 py-3 rounded-lg hover:bg-emerald-700"
-            >
-              <SlidersHorizontal className="size-5" />
-            </button>
-          </div>
+              {/* Salary Min */}
+              <div>
+                <label className="block text-sm text-gray-900 mb-2">
+                  Minimum Salary
+                </label>
+                <input
+                  type="number"
+                  value={filters.salaryMin}
+                  onChange={(e) =>
+                    handleFilterChange("salaryMin", e.target.value)
+                  }
+                  placeholder="e.g., 30000"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 bg-white text-gray-900 placeholder-gray-400"
+                />
+              </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-            {/* Filters Sidebar */}
-            <div
-              className={`lg:col-span-1 ${
-                showFilters ? "block" : "hidden lg:block"
-              }`}
-            >
-              <div className="bg-white rounded-xl border border-gray-200 p-6 sticky top-24 shadow-sm">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg text-gray-900 font-medium">Filters</h3>
-                  {showFilters && (
-                    <button
-                      onClick={() => setShowFilters(false)}
-                      className="lg:hidden p-1.5 rounded hover:bg-gray-100"
-                    >
-                      <X className="w-5 h-5 text-gray-500" />
-                    </button>
-                  )}
-                </div>
-
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm text-gray-900 mb-2">
-                      Employment Type
-                    </label>
-                    <select
-                      value={filters.employmentType}
-                      onChange={(e) =>
-                        handleFilterChange("employmentType", e.target.value)
-                      }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 bg-white text-gray-900 placeholder-gray-400"
-                    >
-                      <option value="">All Types</option>
-                      <option value="full-time">Full-time</option>
-                      <option value="part-time">Part-time</option>
-                      <option value="contract">Contract</option>
-                      <option value="internship">Internship</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm text-gray-900 mb-2">
-                      Work Type
-                    </label>
-                    <select
-                      value={filters.remote}
-                      onChange={(e) =>
-                        handleFilterChange("remote", e.target.value)
-                      }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 bg-white text-gray-900 placeholder-gray-400"
-                    >
-                      <option value="">All</option>
-                      <option value="true">Remote</option>
-                      <option value="false">On-site</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm text-gray-900 mb-2">
-                      Minimum Salary
-                    </label>
-                    <input
-                      type="number"
-                      value={filters.salaryMin}
-                      onChange={(e) =>
-                        handleFilterChange("salaryMin", e.target.value)
-                      }
-                      placeholder="e.g., 30000"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 bg-white text-gray-900 placeholder-gray-400"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm text-gray-900 mb-2">
-                      Maximum Salary
-                    </label>
-                    <input
-                      type="number"
-                      value={filters.salaryMax}
-                      onChange={(e) =>
-                        handleFilterChange("salaryMax", e.target.value)
-                      }
-                      placeholder="e.g., 80000"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 bg-white text-gray-900 placeholder-gray-400"
-                    />
-                  </div>
-                </div>
+              {/* Salary Max */}
+              <div>
+                <label className="block text-sm text-gray-900 mb-2">
+                  Maximum Salary
+                </label>
+                <input
+                  type="number"
+                  value={filters.salaryMax}
+                  onChange={(e) =>
+                    handleFilterChange("salaryMax", e.target.value)
+                  }
+                  placeholder="e.g., 80000"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 bg-white text-gray-900 placeholder-gray-400"
+                />
               </div>
             </div>
 
-            {/* Job Listings */}
-            <div className="lg:col-span-3 space-y-6">
-              <JobGrid
-                jobs={jobs}
-                loading={loading}
-                error={error}
-                appliedJobIds={appliedJobIds}
-                onJobClick={handleJobClick}
-              />
-              {!loading && !error && jobs.length > 0 && (
+            <button
+              type="button"
+              onClick={handleResetFilters}
+              className="
+    w-full
+    text-sm
+    font-medium
+    text-emerald-700
+    bg-emerald-50
+    px-3
+    py-2
+    rounded-lg
+    transition
+    hover:bg-emerald-100
+    hover:text-emerald-800
+    active:bg-emerald-200
+  "
+            >
+              Reset all filters
+            </button>
+          </aside>
+
+          {/* Main Content */}
+          <main className="flex-1 p-6">
+            {/* Search Row */}
+            <div className="mb-4 flex flex-col md:flex-row items-start md:items-center gap-4">
+              <div className="flex-1 relative">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-5 text-gray-400" />
+                <input
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
+                  onKeyPress={handleSearchKeyPress}
+                  placeholder="Search by job title or company name..."
+                  className="w-full pl-12 pr-12 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 bg-white text-gray-900 placeholder-gray-400"
+                />
+                {searchInput && (
+                  <button
+                    onClick={handleClearSearch}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-900 p-1.5 rounded"
+                  >
+                    <X className="size-5" />
+                  </button>
+                )}
+              </div>
+
+              {/* Mobile Filter Toggle */}
+              <button
+                type="button"
+                onClick={() => setShowFilters(!showFilters)}
+                className="md:hidden bg-emerald-600 text-white px-4 py-3 rounded-lg hover:bg-emerald-700"
+              >
+                <SlidersHorizontal className="size-5" />
+              </button>
+
+              <button
+                onClick={handleSearch}
+                className="bg-emerald-600 text-white px-6 py-3 rounded-lg hover:bg-emerald-700 transition font-medium"
+              >
+                Search
+              </button>
+            </div>
+
+            {/* Meta Row */}
+            <div className="mb-4 text-gray-600 text-sm">
+              Showing {jobs.length} jobs
+            </div>
+
+            {/* Job Cards Grid */}
+            <JobGrid
+              jobs={jobs}
+              loading={loading}
+              error={error}
+              appliedJobIds={appliedJobIds}
+              onJobClick={handleJobClick}
+              bookmarkedJobIds={bookmarkedJobIds}
+              onBookmarkToggle={handleBookmarkToggle}
+            />
+
+            {!loading && !error && jobs.length > 0 && (
+              <div className="mt-6">
                 <Pagination
                   pagination={pagination}
                   onPageChange={goToPage}
                   onNext={nextPage}
                   onPrev={prevPage}
                 />
-              )}
+              </div>
+            )}
+            {/* Footer / Dynamic Info Section */}
+            <div className="mt-8 bg-emerald-700 text-white rounded-xl p-6">
+              <h3 className="text-lg font-medium">
+                {user?.name
+                  ? `Hey ${user.name}, discover your next opportunity!`
+                  : "Discover Your Next Opportunity with SuitLink"}
+              </h3>
+              <p className="text-sm text-emerald-100 mt-2">
+                {jobs.length > 0
+                  ? `You're currently viewing ${jobs.length} job${
+                      jobs.length > 1 ? "s" : ""
+                    }. SuitLink helps you find the best matches for your skills and experience.`
+                  : "SuitLink helps you find the best jobs that match your skills and experience. Stay updated with new opportunities and get personalized recommendations directly in your dashboard."}
+              </p>
             </div>
-          </div>
-        </main>
+          </main>
+        </div>
       </div>
     </>
   );

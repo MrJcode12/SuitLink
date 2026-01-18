@@ -1,15 +1,25 @@
-import { MapPin, Briefcase, Clock, Building, CheckCircle } from "lucide-react";
+import {
+  MapPin,
+  Briefcase,
+  Clock,
+  Building,
+  CheckCircle,
+  Bookmark,
+} from "lucide-react";
 
-const JobCard = ({ job, isApplied = false, onClick }) => {
+const JobCard = ({
+  job,
+  isApplied = false,
+  onClick,
+  onBookmarkToggle,
+  isBookmarked = false,
+}) => {
   const formatSalary = (salaryRange) => {
-    if (!salaryRange || (!salaryRange.min && !salaryRange.max)) {
+    if (!salaryRange || (!salaryRange.min && !salaryRange.max))
       return "Negotiable";
-    }
-
     const currency = salaryRange.currency || "PHP";
     const min = salaryRange.min ? `${salaryRange.min.toLocaleString()}` : "";
     const max = salaryRange.max ? `${salaryRange.max.toLocaleString()}` : "";
-
     if (min && max) return `${currency} ${min} - ${max}`;
     if (min) return `${currency} ${min}+`;
     if (max) return `Up to ${currency} ${max}`;
@@ -28,7 +38,6 @@ const JobCard = ({ job, isApplied = false, onClick }) => {
     const now = new Date();
     const diffTime = Math.abs(now - date);
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
     if (diffDays === 0) return "Today";
     if (diffDays === 1) return "Yesterday";
     if (diffDays < 7) return `${diffDays} days ago`;
@@ -39,8 +48,24 @@ const JobCard = ({ job, isApplied = false, onClick }) => {
   return (
     <div
       onClick={() => onClick?.(job._id)}
-      className="bg-white rounded-xl border border-gray-200 p-6 hover:shadow-md transition-all cursor-pointer group"
+      className="relative bg-white rounded-xl border border-gray-200 p-6 hover:shadow-lg transition-all cursor-pointer group"
     >
+      {/* Bookmark Icon */}
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          if (onBookmarkToggle) onBookmarkToggle(job._id);
+        }}
+        className={`absolute top-4 right-4 p-1.5 rounded-full transition-colors ${
+          isBookmarked
+            ? "bg-emerald-600 text-white hover:bg-emerald-700"
+            : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+        }`}
+      >
+        <Bookmark className="w-5 h-5" />
+      </button>
+
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-start gap-3 flex-1">
           {job.company?.logo?.url ? (
@@ -55,7 +80,7 @@ const JobCard = ({ job, isApplied = false, onClick }) => {
             </div>
           )}
           <div className="flex-1 min-w-0">
-            <h3 className="text-base font-medium text-gray-900 group-hover:text-chart-1 transition-colors mb-1">
+            <h3 className="text-base font-medium text-gray-900 group-hover:text-emerald-600 transition-colors mb-1">
               {job.title}
             </h3>
             <p className="text-sm text-gray-600">
@@ -112,7 +137,7 @@ const JobCard = ({ job, isApplied = false, onClick }) => {
       <div className="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500">
         <span>{formatDate(job.createdAt)}</span>
         {job.status === "open" && !isApplied && (
-          <span className="text-chart-1 font-medium">Actively hiring</span>
+          <span className="text-emerald-600 font-medium">Actively hiring</span>
         )}
       </div>
     </div>
