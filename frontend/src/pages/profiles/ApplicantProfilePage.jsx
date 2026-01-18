@@ -25,7 +25,9 @@ const ApplicantProfilePage = () => {
     error,
     updating,
     uploadingResume,
+    uploadingAvatar,
     updateProfile,
+    uploadAvatar,
     uploadResume,
     deleteResume,
     refetch,
@@ -60,6 +62,10 @@ const ApplicantProfilePage = () => {
     return await updateProfile(data);
   };
 
+  const handleAvatarUpload = async (file) => {
+    return await uploadAvatar(file);
+  };
+
   const handleResumeUpload = async (file) => {
     return await uploadResume(file);
   };
@@ -74,10 +80,10 @@ const ApplicantProfilePage = () => {
 
   if (authLoading || loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600 mx-auto"></div>
-          <p className="text-gray-600 mt-4">Loading profile...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-chart-1 mx-auto"></div>
+          <p className="text-muted-foreground mt-4">Loading profile...</p>
         </div>
       </div>
     );
@@ -89,9 +95,9 @@ const ApplicantProfilePage = () => {
         <ApplicantProfileSetupModal onSuccess={handleSetupSuccess} />
       )}
 
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-background">
         {/* Header */}
-        <header className="bg-white border-b border-gray-200 sticky top-0 z-40">
+        <header className="bg-card border-b border-border sticky top-0 z-40">
           <div className="px-6 py-4">
             <div className="flex items-center justify-between">
               <Logo />
@@ -100,30 +106,30 @@ const ApplicantProfilePage = () => {
               <nav className="hidden md:flex items-center gap-6">
                 <button
                   onClick={() => navigate("/applicant-dashboard")}
-                  className={`text-sm font-medium pb-1 ${
+                  className={`text-sm pb-1 ${
                     isActiveRoute("/applicant-dashboard")
-                      ? "text-emerald-600 border-b-2 border-emerald-600"
-                      : "text-gray-600 hover:text-gray-900"
+                      ? "text-chart-1 border-b-2 border-chart-1"
+                      : "text-muted-foreground hover:text-foreground"
                   } py-1`}
                 >
                   Find Jobs
                 </button>
                 <button
                   onClick={() => navigate("/applications")}
-                  className={`text-sm font-medium pb-1 ${
+                  className={`text-sm pb-1 ${
                     isActiveRoute("/applications")
-                      ? "text-emerald-600 border-b-2 border-emerald-600"
-                      : "text-gray-600 hover:text-gray-900"
+                      ? "text-chart-1 border-b-2 border-chart-1"
+                      : "text-muted-foreground hover:text-foreground"
                   } py-1`}
                 >
                   Applications
                 </button>
                 <button
                   onClick={() => navigate("/applicant-profile")}
-                  className={`text-sm font-medium pb-1 ${
+                  className={`text-sm pb-1 ${
                     isActiveRoute("/applicant-profile")
-                      ? "text-emerald-600 border-b-2 border-emerald-600"
-                      : "text-gray-600 hover:text-gray-900"
+                      ? "text-chart-1 border-b-2 border-chart-1"
+                      : "text-muted-foreground hover:text-foreground"
                   } py-1`}
                 >
                   Profile
@@ -133,11 +139,11 @@ const ApplicantProfilePage = () => {
               {/* Right Actions */}
               <div className="flex items-center gap-4">
                 <button className="relative">
-                  <Bell className="size-5 text-gray-600 hover:text-gray-900" />
+                  <Bell className="size-5 text-muted-foreground hover:text-foreground" />
                 </button>
                 <button
                   onClick={() => navigate("/applicant-profile")}
-                  className="w-9 h-9 rounded-full bg-emerald-600 flex items-center justify-center text-white text-sm"
+                  className="w-9 h-9 rounded-full bg-chart-1 flex items-center justify-center text-white text-sm"
                 >
                   {profile?.firstName?.[0]?.toUpperCase() ||
                     user?.name?.[0]?.toUpperCase() ||
@@ -152,8 +158,8 @@ const ApplicantProfilePage = () => {
         <main className="max-w-7xl mx-auto p-6">
           {/* Page Header */}
           <div className="mb-6">
-            <h1 className="text-2xl text-gray-900 mb-2">My Profile</h1>
-            <p className="text-gray-600">
+            <h1 className="text-2xl text-foreground mb-2">My Profile</h1>
+            <p className="text-muted-foreground">
               Manage your personal information, resume, and application
               materials
             </p>
@@ -161,11 +167,11 @@ const ApplicantProfilePage = () => {
 
           {/* Error State */}
           {error && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-sm text-red-600">{error}</p>
+            <div className="mb-6 p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
+              <p className="text-sm text-destructive">{error}</p>
               <button
                 onClick={refetch}
-                className="mt-2 text-sm text-red-700 underline hover:text-red-800"
+                className="mt-2 text-sm text-destructive underline hover:text-destructive/80"
               >
                 Try again
               </button>
@@ -176,9 +182,14 @@ const ApplicantProfilePage = () => {
             {/* Main Content - Left Column */}
             <div className="lg:col-span-2 space-y-6">
               {/* Avatar Upload */}
-              <AvatarUpload profile={profile} onUpdate={refetch} />
+              <AvatarUpload
+                profile={profile}
+                onUpload={handleAvatarUpload}
+                uploading={uploadingAvatar}
+                onUpdate={refetch}
+              />
 
-              {/* Personal Information */}
+              {/* Personal Information - ALL FIELDS NOW SAVE */}
               <ProfileForm
                 profile={profile}
                 onSave={handleProfileUpdate}
@@ -194,7 +205,7 @@ const ApplicantProfilePage = () => {
               {/* Education */}
               <EducationManager profile={profile} onUpdate={refetch} />
 
-              {/* Resume Upload */}
+              {/* Resume Upload - WITH AI ANALYSIS */}
               <ResumeUpload
                 profile={profile}
                 onUpload={handleResumeUpload}
@@ -202,10 +213,10 @@ const ApplicantProfilePage = () => {
                 uploading={uploadingResume}
               />
 
-              {/* AI Resume Analysis */}
+              {/* AI Resume Analysis Display */}
               <ParsedResumeDisplay profile={profile} />
 
-              {/* Cover Letter */}
+              {/* Cover Letter - NOW SAVES */}
               <CoverLetterEditor
                 profile={profile}
                 onSave={handleProfileUpdate}
@@ -219,35 +230,39 @@ const ApplicantProfilePage = () => {
               <ProfileCompletionBadge profile={profile} />
 
               {/* Quick Stats */}
-              <div className="bg-white rounded-xl border border-gray-200 p-6">
-                <h3 className="text-lg text-gray-900 font-medium mb-4">
-                  Quick Stats
-                </h3>
+              <div className="bg-card rounded-xl border border-border p-6">
+                <h3 className="text-lg text-foreground mb-4">Quick Stats</h3>
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600">Skills</span>
-                    <span className="text-sm font-medium text-gray-900">
+                    <span className="text-sm text-muted-foreground">
+                      Skills
+                    </span>
+                    <span className="text-sm font-medium text-foreground">
                       {profile?.skills?.length || 0}
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600">Experience</span>
-                    <span className="text-sm font-medium text-gray-900">
+                    <span className="text-sm text-muted-foreground">
+                      Experience
+                    </span>
+                    <span className="text-sm font-medium text-foreground">
                       {profile?.experience?.length || 0} positions
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600">Education</span>
-                    <span className="text-sm font-medium text-gray-900">
+                    <span className="text-sm text-muted-foreground">
+                      Education
+                    </span>
+                    <span className="text-sm font-medium text-foreground">
                       {profile?.education?.length || 0} entries
                     </span>
                   </div>
                   {profile?.resumeAnalysis?.score && (
-                    <div className="flex items-center justify-between pt-3 border-t border-gray-200">
-                      <span className="text-sm text-gray-600">
+                    <div className="flex items-center justify-between pt-3 border-t border-border">
+                      <span className="text-sm text-muted-foreground">
                         Resume Score
                       </span>
-                      <span className="text-sm font-medium text-emerald-600">
+                      <span className="text-sm font-medium text-chart-1">
                         {profile.resumeAnalysis.score}/100
                       </span>
                     </div>
@@ -256,27 +271,25 @@ const ApplicantProfilePage = () => {
               </div>
 
               {/* Profile Tips */}
-              <div className="bg-gradient-to-br from-emerald-50 to-blue-50 rounded-xl border border-emerald-200 p-6">
-                <h3 className="text-lg text-gray-900 font-medium mb-3">
-                  Profile Tips
-                </h3>
-                <ul className="space-y-2 text-sm text-gray-700">
+              <div className="bg-gradient-to-br from-chart-1/10 to-chart-2/10 rounded-xl border border-chart-1/20 p-6">
+                <h3 className="text-lg text-foreground mb-3">Profile Tips</h3>
+                <ul className="space-y-2 text-sm text-foreground">
                   <li className="flex items-start gap-2">
-                    <span className="text-emerald-600 mt-0.5">•</span>
+                    <span className="text-chart-1 mt-0.5">•</span>
                     <span>
                       Upload an updated resume for AI-powered insights
                     </span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <span className="text-emerald-600 mt-0.5">•</span>
+                    <span className="text-chart-1 mt-0.5">•</span>
                     <span>Add your work experience and education</span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <span className="text-emerald-600 mt-0.5">•</span>
+                    <span className="text-chart-1 mt-0.5">•</span>
                     <span>List your technical and soft skills</span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <span className="text-emerald-600 mt-0.5">•</span>
+                    <span className="text-chart-1 mt-0.5">•</span>
                     <span>Keep your contact information up to date</span>
                   </li>
                 </ul>

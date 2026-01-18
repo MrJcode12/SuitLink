@@ -1,9 +1,7 @@
 import { useState, useRef } from "react";
 import { Upload, User, CheckCircle, AlertCircle } from "lucide-react";
-import applicantProfileService from "../../services/applicantProfileService";
 
-const AvatarUpload = ({ profile, onUpdate }) => {
-  const [uploading, setUploading] = useState(false);
+const AvatarUpload = ({ profile, onUpload, uploading, onUpdate }) => {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const fileInputRef = useRef(null);
@@ -27,22 +25,22 @@ const AvatarUpload = ({ profile, onUpdate }) => {
       return;
     }
 
-    setUploading(true);
+    const result = await onUpload(file);
 
-    try {
-      const response = await applicantProfileService.uploadAvatar(file);
-      if (response.success) {
-        setSuccess("Profile photo updated successfully!");
-        setTimeout(() => setSuccess(""), 3000);
+    if (result?.success) {
+      setSuccess("Profile photo updated successfully!");
+      setTimeout(() => setSuccess(""), 3000);
+      // Trigger profile refresh
+      if (onUpdate) {
         await onUpdate();
       }
-    } catch (err) {
-      setError(err.message || "Failed to upload photo");
-    } finally {
-      setUploading(false);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
+    } else {
+      setError(result?.error || "Failed to upload photo");
+    }
+
+    // Reset file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
     }
   };
 
@@ -52,28 +50,28 @@ const AvatarUpload = ({ profile, onUpdate }) => {
   }`.toUpperCase();
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-6">
-      <h2 className="text-lg text-gray-900 font-medium mb-4">Profile Photo</h2>
+    <div className="bg-card rounded-xl border border-border p-6">
+      <h2 className="text-lg text-foreground mb-4">Profile Photo</h2>
 
       {/* Success Message */}
       {success && (
-        <div className="mb-4 p-3 bg-emerald-50 border border-emerald-200 rounded-lg flex items-center gap-2">
-          <CheckCircle className="w-5 h-5 text-emerald-600 flex-shrink-0" />
-          <p className="text-sm text-emerald-700">{success}</p>
+        <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2">
+          <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
+          <p className="text-sm text-green-700">{success}</p>
         </div>
       )}
 
       {/* Error Message */}
       {error && (
-        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2">
-          <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
-          <p className="text-sm text-red-600">{error}</p>
+        <div className="mb-4 p-3 bg-destructive/10 border border-destructive/20 rounded-lg flex items-center gap-2">
+          <AlertCircle className="w-5 h-5 text-destructive flex-shrink-0" />
+          <p className="text-sm text-destructive">{error}</p>
         </div>
       )}
 
       <div className="flex items-center gap-6">
         {/* Avatar Display */}
-        <div className="w-24 h-24 rounded-full overflow-hidden bg-emerald-100 flex items-center justify-center flex-shrink-0">
+        <div className="w-24 h-24 rounded-full overflow-hidden bg-chart-1/10 flex items-center justify-center flex-shrink-0">
           {profileImageUrl ? (
             <img
               src={profileImageUrl}
@@ -81,7 +79,7 @@ const AvatarUpload = ({ profile, onUpdate }) => {
               className="w-full h-full object-cover"
             />
           ) : (
-            <span className="text-2xl font-medium text-emerald-600">
+            <span className="text-2xl font-medium text-chart-1">
               {initials || <User className="w-10 h-10" />}
             </span>
           )}
@@ -100,7 +98,7 @@ const AvatarUpload = ({ profile, onUpdate }) => {
           <button
             onClick={() => fileInputRef.current?.click()}
             disabled={uploading}
-            className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-2 disabled:opacity-50"
+            className="px-4 py-2 border border-border rounded-lg hover:bg-accent transition-colors flex items-center gap-2 disabled:opacity-50"
           >
             <Upload className="w-4 h-4" />
             {uploading
@@ -109,7 +107,7 @@ const AvatarUpload = ({ profile, onUpdate }) => {
               ? "Change Photo"
               : "Upload Photo"}
           </button>
-          <p className="text-xs text-gray-500 mt-2">
+          <p className="text-xs text-muted-foreground mt-2">
             JPG, PNG or GIF. Max size 5MB.
           </p>
         </div>

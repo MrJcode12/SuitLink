@@ -7,6 +7,7 @@ const useApplicantProfile = () => {
   const [error, setError] = useState(null);
   const [updating, setUpdating] = useState(false);
   const [uploadingResume, setUploadingResume] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
   const fetchProfile = async () => {
     try {
@@ -45,6 +46,26 @@ const useApplicantProfile = () => {
     }
   };
 
+  const uploadAvatar = async (file) => {
+    try {
+      setUploadingAvatar(true);
+      setError(null);
+      const response = await applicantProfileService.uploadAvatar(file);
+
+      if (response.success) {
+        // Refresh profile to get updated avatar
+        await fetchProfile();
+        return { success: true, data: response.data };
+      }
+    } catch (err) {
+      console.error("Error uploading avatar:", err);
+      setError(err.message || "Failed to upload avatar");
+      return { success: false, error: err.message };
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
+
   const uploadResume = async (file) => {
     try {
       setUploadingResume(true);
@@ -52,7 +73,7 @@ const useApplicantProfile = () => {
       const response = await applicantProfileService.uploadResume(file);
 
       if (response.success) {
-        // Refresh profile to get updated resume and parsed data
+        // Refresh profile to get updated resume and analysis
         await fetchProfile();
         return { success: true, data: response.data };
       }
@@ -94,7 +115,9 @@ const useApplicantProfile = () => {
     error,
     updating,
     uploadingResume,
+    uploadingAvatar,
     updateProfile,
+    uploadAvatar,
     uploadResume,
     deleteResume,
     refetch: fetchProfile,
