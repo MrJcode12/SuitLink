@@ -199,7 +199,7 @@ const ApplicationsPage = () => {
                   <Bell className="size-5 text-muted-foreground hover:text-foreground" />
                 </button>
                 <button
-                  onClick={() => navigate("/profile")}
+                  onClick={() => navigate("/applicant-profile")}
                   className="w-9 h-9 rounded-full bg-chart-1 flex items-center justify-center text-white text-sm"
                 >
                   {user?.name?.[0]?.toUpperCase() || "A"}
