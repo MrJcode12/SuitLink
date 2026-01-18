@@ -1,24 +1,19 @@
 import { useEffect, useRef, useState } from "react";
-import { LogOut } from "lucide-react";
-import { useNavigate, useLocation } from "react-router-dom";
-import { useProfile } from "../../context/ProfileContext";
-import useAuth from "../../hooks/useAuth";
+import { Bell, LogOut, Plus } from "lucide-react";
+import { useLocation, useNavigate } from "react-router-dom";
 import Logo from "../Auth/Shared/Logo";
 import { authService } from "../../services/authService";
-import NotificationsBell from "../Notifications/NotificationsBell";
 
-const ApplicantNavbar = () => {
+const EmployerNavbar = ({
+  companyProfile,
+  onPostJob,
+  bellSlot = null,
+}) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user } = useAuth();
-  const { profile, refreshProfile } = useProfile();
 
   const [showAvatarMenu, setShowAvatarMenu] = useState(false);
   const menuRef = useRef(null);
-
-  useEffect(() => {
-    if (user) refreshProfile();
-  }, [user?._id]);
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -47,32 +42,11 @@ const ApplicantNavbar = () => {
         : "text-gray-500 border-transparent hover:text-emerald-600 hover:border-emerald-600"
     }`;
 
-  const getAvatarDisplay = () => {
-    if (profile?.profileImage?.url) {
-      return (
-        <img
-          key={`avatar-${user?._id}-${profile.profileImage.url}`}
-          src={profile.profileImage.url}
-          alt="Profile"
-          className="w-full h-full object-cover"
-        />
-      );
-    }
-
-    const initials =
-      `${profile?.firstName?.[0] || ""}${profile?.lastName?.[0] || ""}`.toUpperCase() ||
-      user?.name?.[0]?.toUpperCase() ||
-      "A";
-
-    return (
-      <span
-        key={`initials-${user?._id}`}
-        className="text-sm font-medium text-white"
-      >
-        {initials}
-      </span>
-    );
-  };
+  const companyInitial =
+    (companyProfile?.companyName || companyProfile?.name || "C")
+      ?.trim()
+      ?.charAt(0)
+      ?.toUpperCase() || "C";
 
   const handleLogout = async () => {
     try {
@@ -89,69 +63,102 @@ const ApplicantNavbar = () => {
     <header className="bg-white border-b border-gray-200 sticky top-0 z-40">
       <div className="px-6 py-4">
         <div className="flex items-center justify-between">
-          <Logo to ="/applicant-dashboard"/>
+          <Logo to="/employer-dashboard"/>
 
           <nav className="hidden md:flex items-center gap-6">
             <button
-              onClick={() => navigate("/applicant-dashboard")}
-              className={navItemClass("/applicant-dashboard")}
               type="button"
+              onClick={() => navigate("/employer-dashboard")}
+              className={navItemClass("/employer-dashboard")}
             >
-              Find Jobs
+              Overview
             </button>
 
             <button
-              onClick={() => navigate("/applications")}
-              className={navItemClass("/applications")}
               type="button"
+              onClick={() => navigate("/jobs")}
+              className={navItemClass("")}
             >
-              Applications
+              My Jobs
             </button>
 
             <button
-              onClick={() => navigate("/applicant-profile")}
-              className={navItemClass("/applicant-profile")}
               type="button"
+              onClick={() => navigate("/employer/applicants")}
+              className={navItemClass("/employer/applicants")}
             >
-              Profile
+              Applicants
             </button>
           </nav>
 
-          <div className="flex items-center gap-4">
-            {/* Notifications Bell */}
-            <NotificationsBell />
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => navigate("/employer/post-job")}
+              className="hidden md:inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              <span className="text-sm font-medium">Post Job</span>
+            </button>
+
+            {bellSlot ? (
+              bellSlot
+            ) : (
+              <button type="button" className="relative">
+                <Bell className="size-5 text-gray-500 hover:text-gray-900 transition-colors" />
+              </button>
+            )}
 
             <div className="relative" ref={menuRef}>
               <button
-                onClick={() => setShowAvatarMenu((v) => !v)}
-                key={`avatar-button-${user?._id}`}
                 type="button"
                 aria-haspopup="menu"
                 aria-expanded={showAvatarMenu}
-                className="w-9 h-9 rounded-full bg-emerald-600 flex items-center justify-center overflow-hidden hover:opacity-90 transition-opacity"
+                onClick={() => setShowAvatarMenu((v) => !v)}
+                className="w-9 h-9 rounded-full bg-emerald-600 flex items-center justify-center overflow-hidden hover:opacity-90 transition-opacity text-white text-sm font-medium"
               >
-                {getAvatarDisplay()}
+                {companyProfile?.logo?.url ? (
+                  <img
+                    src={companyProfile.logo.url}
+                    alt="Company"
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  companyInitial
+                )}
               </button>
 
               {showAvatarMenu && (
                 <div
                   role="menu"
-                  className="absolute right-0 mt-2 w-52 bg-white border border-gray-200 rounded-xl shadow-lg ring-1 ring-black/5 overflow-hidden"
+                  className="absolute right-0 mt-2 w-56 bg-white border border-gray-200 rounded-xl shadow-lg ring-1 ring-black/5 overflow-hidden"
                 >
                   <div className="px-3 py-2 border-b border-gray-100">
                     <p className="text-sm font-medium text-gray-900 truncate">
-                      {user?.name || "Account"}
+                      {companyProfile?.companyName || "Company"}
                     </p>
                     <p className="text-xs text-gray-500 truncate">
-                      {user?.email || ""}
+                      {companyProfile?.industry || ""}
                     </p>
                   </div>
 
                   <button
                     type="button"
+                    role="menuitem"
+                    onClick={() => {
+                      setShowAvatarMenu(false);
+                      navigate("/employer-profile");
+                    }}
+                    className="w-full px-3 py-2.5 text-left text-sm text-gray-700 hover:bg-gray-50"
+                  >
+                    Company Profile
+                  </button>
+
+                  <button
+                    type="button"
+                    role="menuitem"
                     onClick={handleLogout}
                     className="w-full px-3 py-2.5 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
-                    role="menuitem"
                   >
                     <LogOut className="w-4 h-4 text-gray-500" />
                     Log out
@@ -166,4 +173,4 @@ const ApplicantNavbar = () => {
   );
 };
 
-export default ApplicantNavbar;
+export default EmployerNavbar;

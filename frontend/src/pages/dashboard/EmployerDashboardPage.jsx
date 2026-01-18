@@ -16,6 +16,7 @@ import JobCard from "../../components/EmployerDashboard/JobCard";
 import StatsCard from "../../components/EmployerDashboard/StatsCard";
 import EditJobModal from "../../components/EmployerDashboard/EditJobModal";
 import Logo from "../../components/Auth/Shared/Logo";
+import EmployerNavbar from "../../components/EmployerDashboard/EmployerNavBar";
 
 const EmployerDashboardPage = () => {
   const navigate = useNavigate();
@@ -198,73 +199,32 @@ const EmployerDashboardPage = () => {
       )}
 
       <div className="min-h-screen bg-gray-50">
-        {/* Header */}
-        <header className="bg-white border-b border-gray-200 sticky top-0 z-40">
-          <div className="px-6 py-4">
-            <div className="flex items-center justify-between">
-              <Logo />
-
-              {/* Desktop Navigation */}
-              <nav className="hidden md:flex items-center gap-6">
-                <button
-                  onClick={() => setActiveTab("overview")}
-                  className={`text-sm font-medium pb-1 ${
-                    activeTab === "overview"
-                      ? "text-chart-1 border-b-2 border-chart-1"
-                      : "text-gray-600 hover:text-gray-900"
-                  } py-1`}
-                >
-                  Overview
-                </button>
-                <button
-                  onClick={() => setActiveTab("jobs")}
-                  className={`text-sm font-medium pb-1 ${
-                    activeTab === "jobs"
-                      ? "text-chart-1 border-b-2 border-chart-1"
-                      : "text-gray-600 hover:text-gray-900"
-                  } py-1`}
-                >
-                  My Jobs
-                </button>
-                <button
-                  onClick={() => navigate("/jobs")}
-                  className="text-sm font-medium text-gray-600 hover:text-gray-900 py-1"
-                >
-                  Browse Jobs
-                </button>
-              </nav>
-
-              {/* Right Actions */}
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={handlePostJob}
-                  className="hidden md:flex items-center gap-2 px-4 py-2 bg-chart-1 text-white rounded-lg hover:opacity-90 transition-opacity"
-                >
-                  <Plus className="w-4 h-4" />
-                  <span className="text-sm">Post Job</span>
-                </button>
-                <button className="relative">
-                  <Bell className="size-5 text-gray-600 hover:text-gray-900" />
-                </button>
-                <button
-                  onClick={handleViewProfile}
-                  className="w-9 h-9 rounded-full bg-chart-1 flex items-center justify-center text-white text-sm"
-                >
-                  {companyProfile?.companyName?.[0] || "C"}
-                </button>
-              </div>
-            </div>
-          </div>
+        {/* Navbar */}
+        <header className="sticky top-0 z-40">
+          <EmployerNavbar
+            companyProfile={companyProfile}
+            onPostJob={handlePostJob}
+          />
         </header>
 
-        <div className="p-6">
-          {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <main className="max-w-7xl mx-auto p-6">
+          {/* Page Header */}
+          <div className="mb-6">
+            <h1 className="text-2xl text-gray-900 font-medium mb-1">
+              Employer Dashboard
+            </h1>
+            <p className="text-gray-600">
+              Manage your job postings and track incoming applicants
+            </p>
+          </div>
+
+          {/* Stats Row */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
             <StatsCard
               icon={BriefcaseIcon}
               value={activeJobs.toString()}
               label="Active Jobs"
-              trend={true}
+              trend
             />
             <StatsCard
               icon={BriefcaseIcon}
@@ -275,53 +235,29 @@ const EmployerDashboardPage = () => {
               icon={Users}
               value={totalApplicants.toString()}
               label="Total Applicants"
-              trend={true}
-            />
-            <StatsCard
-              icon={Eye}
-              value={companyProfile?.metrics?.totalViews || "0"}
-              label="Profile Views"
+              trend
             />
           </div>
 
-          {/* Credibility Score Display */}
-          {companyProfile && (
-            <div className="bg-white rounded-xl border border-gray-200 p-4 mb-8">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-sm text-gray-600">
-                    Company Credibility Score
-                  </h3>
-                  <p className="text-2xl font-medium text-gray-900 mt-1">
-                    {companyProfile.credibilityScore} / 10
-                  </p>
-                </div>
-                {hasCredibilityBadge && (
-                  <div className="px-4 py-2 bg-chart-1/10 text-chart-1 rounded-lg">
-                    <p className="text-sm font-medium">Verified Company</p>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Jobs Section */}
-          {activeTab === "jobs" && (
-            <div className="bg-white rounded-xl border border-gray-200">
-              <div className="p-6 border-b border-gray-200">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-lg text-gray-900">Posted Jobs</h2>
+          {/* Main Layout */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* LEFT: Main Content */}
+            <div className="lg:col-span-2 space-y-6">
+              {/* Posted Jobs */}
+              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm">
+                <div className="p-6 border-b border-gray-200 flex items-center justify-between">
+                  <h2 className="text-lg font-medium text-gray-900">
+                    Posted Jobs
+                  </h2>
                   <button
                     onClick={handlePostJob}
-                    className="flex items-center gap-2 px-4 py-2 bg-chart-1 text-white rounded-lg hover:opacity-90 transition-opacity"
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition"
                   >
-                    <Plus className="size-4" />
-                    <span className="text-sm">Post New Job</span>
+                    <Plus className="w-4 h-4" />
+                    <span className="text-sm font-medium">Post Job</span>
                   </button>
                 </div>
-              </div>
 
-              <div>
                 {jobs.length === 0 ? (
                   <div className="p-12 text-center">
                     <BriefcaseIcon className="w-12 h-12 text-gray-400 mx-auto mb-4" />
@@ -329,44 +265,84 @@ const EmployerDashboardPage = () => {
                       No jobs posted yet
                     </h3>
                     <p className="text-gray-600 mb-6">
-                      Start posting jobs to attract qualified candidates
+                      Start posting jobs to receive applications
                     </p>
                     <button
                       onClick={handlePostJob}
-                      className="px-6 py-3 bg-chart-1 text-white rounded-lg hover:opacity-90 transition-opacity"
+                      className="px-6 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition"
                     >
                       Post Your First Job
                     </button>
                   </div>
                 ) : (
-                  jobs.map((job) => (
-                    <JobCard
-                      key={job._id}
-                      job={job}
-                      onEdit={handleEditJob}
-                      onClose={handleCloseJob}
-                      onReopen={handleReopenJob}
-                      onViewApplicants={handleViewApplicants}
-                    />
-                  ))
+                  <div className="divide-y divide-gray-100">
+                    {jobs.map((job) => (
+                      <JobCard
+                        key={job._id}
+                        job={job}
+                        onEdit={handleEditJob}
+                        onClose={handleCloseJob}
+                        onReopen={handleReopenJob}
+                        onViewApplicants={handleViewApplicants}
+                      />
+                    ))}
+                  </div>
                 )}
               </div>
             </div>
-          )}
 
-          {/* Overview Tab */}
-          {activeTab === "overview" && (
-            <div className="space-y-6">
-              <div className="bg-white rounded-xl border border-gray-200 p-6">
-                <h2 className="text-lg text-gray-900 mb-4">Recent Activity</h2>
-                <p className="text-gray-600">No recent activity</p>
+            {/* RIGHT: Sidebar */}
+            <div className="lg:col-span-1 space-y-6">
+              {/* Credibility Score */}
+              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+                <h3 className="text-sm text-gray-600 mb-1">
+                  Company Credibility Score
+                </h3>
+                <p className="text-2xl font-medium text-gray-900">
+                  {companyProfile.credibilityScore} / 10
+                </p>
+
+                {hasCredibilityBadge && (
+                  <div className="mt-3 inline-flex px-3 py-1 bg-emerald-50 text-emerald-700 rounded-lg text-sm font-medium">
+                    Verified Company
+                  </div>
+                )}
+              </div>
+
+              {/* Recent Applicants */}
+              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+                <h3 className="text-lg font-medium text-gray-900 mb-4">
+                  Recent Applicants
+                </h3>
+
+                {totalApplicants === 0 ? (
+                  <p className="text-sm text-gray-600">
+                    No applicants yet. New applications will appear here.
+                  </p>
+                ) : (
+                  <div className="space-y-3">
+                    <p className="text-sm text-gray-600">
+                      Applicants are coming in. View job-specific applicant lists
+                      to take action.
+                    </p>
+
+                    <button
+                      onClick={() => navigate("/employer/applicants")}
+                      className="w-full mt-3 px-4 py-2.5 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition text-sm font-medium"
+                    >
+                      View All Applicants
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
-          )}
-        </div>
+          </div>
+        </main>
       </div>
     </>
   );
+
+
 };
 
 export default EmployerDashboardPage;
