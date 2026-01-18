@@ -15,6 +15,7 @@ import JobDetailsPage from "./pages/jobs/JobDetailsPage";
 import EmployerProfile from "./pages/profiles/EmployerProfile";
 import ProtectedRoute from "./routes/ProtectedRoute";
 import useAuth from "./hooks/useAuth";
+import JobSeekerDashboardPage from "./pages/dashboard/JobSeekerDashboardPage";
 
 // 404 Not Found component
 const NotFound = () => {
@@ -35,24 +36,24 @@ const NotFound = () => {
 };
 
 // Temporary Applicant Dashboard (placeholder)
-const ApplicantDashboardPage = () => {
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="text-center">
-        <h1 className="text-3xl font-bold text-gray-900 mb-4">
-          Applicant Dashboard
-        </h1>
-        <p className="text-gray-600 mb-8">This page is under construction.</p>
-        <button
-          onClick={() => (window.location.href = "/login")}
-          className="px-6 py-3 bg-chart-1 text-white rounded-lg hover:opacity-90"
-        >
-          Back to Login
-        </button>
-      </div>
-    </div>
-  );
-};
+// const ApplicantDashboardPage = () => {
+//   return (
+//     <div className="min-h-screen flex items-center justify-center bg-gray-50">
+//       <div className="text-center">
+//         <h1 className="text-3xl font-bold text-gray-900 mb-4">
+//           Applicant Dashboard
+//         </h1>
+//         <p className="text-gray-600 mb-8">This page is under construction.</p>
+//         <button
+//           onClick={() => (window.location.href = "/login")}
+//           className="px-6 py-3 bg-chart-1 text-white rounded-lg hover:opacity-90"
+//         >
+//           Back to Login
+//         </button>
+//       </div>
+//     </div>
+//   );
+// };
 
 const App = () => {
   return (
@@ -122,7 +123,7 @@ const App = () => {
           path="/applicant-dashboard"
           element={
             <ProtectedRoute requireApplicant={true}>
-              <ApplicantDashboardPage />
+              <JobSeekerDashboardPage />
             </ProtectedRoute>
           }
         />
