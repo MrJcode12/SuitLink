@@ -1,8 +1,13 @@
-import JobApplication from '../models/JobApplication.js';
-import JobPosting from '../models/JobPosting.js';
-import ApplicantProfile from '../models/ApplicantProfile.js';
-import CompanyProfile from '../models/CompanyProfile.js';
-import NotificationService from './notification.service.js';
+import JobApplication from "../models/JobApplication.js";
+import JobPosting from "../models/JobPosting.js";
+import ApplicantProfile from "../models/ApplicantProfile.js";
+import CompanyProfile from "../models/CompanyProfile.js";
+import NotificationService from "./notification.service.js";
+
+/*
+  NOTE: This service now requires applicant profile to exist.
+  Frontend should check for profile and show setup modal if not found.
+*/
 
 /*
   ENDPOINTS (api/v1/applications)
@@ -13,26 +18,27 @@ import NotificationService from './notification.service.js';
 */
 
 class JobApplicationService {
-
   // POST /
   static async apply(userId, jobPostingId, resumeId, coverLetter) {
     const applicantProfile = await ApplicantProfile.findOne({ user: userId });
     if (!applicantProfile) {
-      throw new Error('Applicant profile not found');
+      throw new Error(
+        "Please complete your applicant profile before applying to jobs"
+      );
     }
 
     const jobPosting = await JobPosting.findById(jobPostingId);
     if (!jobPosting) {
-      throw new Error('Job posting not found');
+      throw new Error("Job posting not found");
     }
 
-    if (jobPosting.status !== 'open') {
-      throw new Error('Job is no longer accepting applications');
+    if (jobPosting.status !== "open") {
+      throw new Error("Job is no longer accepting applications");
     }
 
     const resume = applicantProfile.resumes.id(resumeId);
     if (!resume) {
-      throw new Error('Selected resume does not belong to applicant');
+      throw new Error("Selected resume does not belong to applicant");
     }
 
     const application = await JobApplication.create({
@@ -44,16 +50,15 @@ class JobApplicationService {
       coverLetter,
     });
 
-    await CompanyProfile.findByIdAndUpdate(
-      jobPosting.company,
-      { $inc: { 'metrics.totalApplicants': 1 }}
-    );
+    await CompanyProfile.findByIdAndUpdate(jobPosting.company, {
+      $inc: { "metrics.totalApplicants": 1 },
+    });
 
     await NotificationService.create({
       user: jobPosting.employer,
-      type: 'NEW_APPLICATION',
-      title: 'New job application',
-      message: 'A new applicant has applied to your job posting.',
+      type: "NEW_APPLICATION",
+      title: "New job application",
+      message: "A new applicant has applied to your job posting.",
       data: {
         jobPostingId: jobPosting._id,
         applicationId: application._id,
@@ -71,38 +76,39 @@ class JobApplicationService {
     });
 
     if (!jobPosting) {
-      throw new Error('Unauthorized access to job applicants');
+      throw new Error("Unauthorized access to job applicants");
     }
 
     return JobApplication.find({ jobPosting: jobPostingId })
       .populate({
-        path: 'applicant',
-        select: 'firstName lastName skills experience resumeAnalysis',
+        path: "applicant",
+        select: "firstName lastName skills experience resumeAnalysis",
       })
       .sort({ createdAt: -1 });
   }
 
   // PATCH /:applicationId/status
   static async updateStatus(applicationId, employerUserId, status) {
-
     const application = await JobApplication.findById(applicationId);
     if (!application) {
-      throw new Error('Application not found');
+      throw new Error("Application not found");
     }
 
     if (application.employer.toString() !== employerUserId.toString()) {
-      throw new Error('Unauthorized to update this application');
+      throw new Error("Unauthorized to update this application");
     }
 
     application.status = status;
     await application.save();
 
-    const applicantProfile = await ApplicantProfile.findById(application.applicant);
-    
+    const applicantProfile = await ApplicantProfile.findById(
+      application.applicant
+    );
+
     await NotificationService.create({
       user: applicantProfile.user,
-      type: 'APPLICATION_STATUS_UPDATE',
-      title: 'Application status updated',
+      type: "APPLICATION_STATUS_UPDATE",
+      title: "Application status updated",
       message: `Your application has been ${status}.`,
       data: {
         applicationId: application._id,
@@ -116,18 +122,19 @@ class JobApplicationService {
   // GET /me
   static async getMyApplications(userId) {
     const applicantProfile = await ApplicantProfile.findOne({ user: userId });
+
     if (!applicantProfile) {
-      throw new Error('Applicant profile not found');
+      throw new Error("Applicant profile not found");
     }
 
     return JobApplication.find({ applicant: applicantProfile._id })
       .populate({
-        path: 'jobPosting',
-        select: 'title employmentType location',
+        path: "jobPosting",
+        select: "title employmentType location",
       })
       .populate({
-        path: 'company',
-        select: 'companyName logo',
+        path: "company",
+        select: "companyName logo",
       })
       .sort({ createdAt: -1 });
   }

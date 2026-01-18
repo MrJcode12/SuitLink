@@ -31,20 +31,12 @@ class JobPostingService {
       company: company._id,
     });
 
-<<<<<<< HEAD
-    await CompanyProfile.findByIdAndUpdate(
-      company._id,
-      {
-        $inc: {
-          'metrics.jobPostsCount': 1,
-          'metrics.activeJobsCount': 1,
-        }
-      }
-    );
-=======
-    // Update metrics after job creation
-    await this.updateCompanyMetrics(company._id);
->>>>>>> 610a0dc (commit for rebase)
+    await CompanyProfile.findByIdAndUpdate(company._id, {
+      $inc: {
+        "metrics.jobPostsCount": 1,
+        "metrics.activeJobsCount": 1,
+      },
+    });
 
     return job;
   }
@@ -158,25 +150,11 @@ class JobPostingService {
       throw new Error("Unauthorized!");
     }
 
-<<<<<<< HEAD
-    const oldStatus = job.status;
-
-    job.status = 'closed';
-    await job.save();
-
-    if (oldStatus === 'open') {
-      await CompanyProfile.findByIdAndUpdate(
-        job.company,
-        { $inc: { 'metrics.activeJobsCount': -1 } }
-      );
-    }
-=======
     job.status = "closed";
     await job.save();
 
     // Update metrics after closing
     await this.updateCompanyMetrics(job.company);
->>>>>>> 610a0dc (commit for rebase)
 
     return job;
   }
@@ -193,25 +171,21 @@ class JobPostingService {
       throw new Error("Unauthorized!");
     }
 
-<<<<<<< HEAD
     const oldStatus = job.status;
 
-    job.status = 'open';
+    job.status = "open";
     await job.save();
 
-    if (oldStatus === 'closed') {
-      await CompanyProfile.findByIdAndUpdate(
-        job.company,
-        { $inc: { 'metrics.activeJobsCount': 1 } }
-      );
+    if (oldStatus === "closed") {
+      await CompanyProfile.findByIdAndUpdate(job.company, {
+        $inc: { "metrics.activeJobsCount": 1 },
+      });
     }
-=======
     job.status = "open";
     await job.save();
 
     // Update metrics after reopening
     await this.updateCompanyMetrics(job.company);
->>>>>>> 610a0dc (commit for rebase)
 
     return job;
   }
