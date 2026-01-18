@@ -13,12 +13,17 @@ const applicationsApi = axios.create({
   },
 });
 
-// Response interceptor
 applicationsApi.interceptors.response.use(
-  (response) => response.data,
+  (response) => {
+    return response.data;
+  },
   (error) => {
-    const message = error.response?.data?.message || "An error occurred";
+    // Improved error handling
+    const message =
+      error.response?.data?.message || error.message || "An error occurred";
+    console.error("Applications API Error:", message);
     throw new Error(message);
   }
 );
+
 export default applicationsApi;

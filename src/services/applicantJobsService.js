@@ -1,6 +1,5 @@
 import jobsApi from "../api/jobsAxiosConfig";
 
-// GET /api/v1/jobs - Browse all jobs
 const getJobs = (params = {}) => {
   const {
     page = 1,

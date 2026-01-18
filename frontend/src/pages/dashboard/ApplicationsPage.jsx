@@ -1,0 +1,299 @@
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { Briefcase, Bell, FileText, Calendar, Building } from "lucide-react";
+import useAuth from "../../hooks/useAuth";
+import applicationsApiService from "../../services/applicationsService";
+import Logo from "../../components/Auth/Shared/Logo";
+
+const ApplicationsPage = () => {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+
+  const [applications, setApplications] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 10,
+    totalItems: 0,
+    totalPages: 0,
+  });
+
+  useEffect(() => {
+    fetchApplications();
+  }, [pagination.page]);
+
+  const fetchApplications = async () => {
+    try {
+      setLoading(true);
+      setError("");
+
+      const response = await applicationsApiService.getMyApplications({
+        page: pagination.page,
+        limit: pagination.limit,
+      });
+
+      if (response.success) {
+        setApplications(response.data.applications || []);
+        if (response.data.pagination) {
+          setPagination(response.data.pagination);
+        }
+      }
+    } catch (err) {
+      console.error("Error fetching applications:", err);
+      setError(err.message || "Failed to load applications");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  };
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case "pending":
+        return "bg-blue-100 text-blue-700";
+      case "reviewed":
+        return "bg-purple-100 text-purple-700";
+      case "accepted":
+        return "bg-emerald-100 text-emerald-700";
+      case "rejected":
+        return "bg-red-100 text-red-700";
+      default:
+        return "bg-gray-100 text-gray-700";
+    }
+  };
+
+  const getStatusLabel = (status) => {
+    return status.charAt(0).toUpperCase() + status.slice(1);
+  };
+
+  const isActiveRoute = (path) => {
+    return location.pathname === path;
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <header className="bg-white border-b border-gray-200 sticky top-0 z-40">
+        <div className="px-6 py-4">
+          <div className="flex items-center justify-between">
+            <Logo />
+
+            <nav className="hidden md:flex items-center gap-6">
+              <button
+                onClick={() => navigate("/applicant-dashboard")}
+                className={`text-sm font-medium pb-1 ${
+                  isActiveRoute("/jobs")
+                    ? "text-chart-1 border-b-2 border-chart-1"
+                    : "text-gray-600 hover:text-gray-900"
+                } py-1`}
+              >
+                Find Jobs
+              </button>
+              <button
+                onClick={() => navigate("/applications")}
+                className={`text-sm font-medium pb-1 ${
+                  isActiveRoute("/applications")
+                    ? "text-chart-1 border-b-2 border-chart-1"
+                    : "text-gray-600 hover:text-gray-900"
+                } py-1`}
+              >
+                Applications
+              </button>
+              <button
+                onClick={() => navigate("/saved-jobs")}
+                className={`text-sm font-medium pb-1 ${
+                  isActiveRoute("/saved-jobs")
+                    ? "text-chart-1 border-b-2 border-chart-1"
+                    : "text-gray-600 hover:text-gray-900"
+                } py-1`}
+              >
+                Saved Jobs
+              </button>
+            </nav>
+
+            <div className="flex items-center gap-4">
+              <button className="relative">
+                <Bell className="size-5 text-gray-600 hover:text-gray-900" />
+              </button>
+              <button
+                onClick={() => navigate("/profile")}
+                className="w-9 h-9 rounded-full bg-chart-1 flex items-center justify-center text-white text-sm"
+              >
+                {user?.name?.[0]?.toUpperCase() || "A"}
+              </button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="max-w-6xl mx-auto p-6">
+        <div className="mb-6">
+          <h1 className="text-2xl text-gray-900 mb-2">My Applications</h1>
+          <p className="text-gray-600">
+            Track the status of your job applications
+          </p>
+        </div>
+
+        {/* Loading State */}
+        {loading && (
+          <div className="flex items-center justify-center py-12">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-chart-1 mx-auto mb-4"></div>
+              <p className="text-gray-600">Loading applications...</p>
+            </div>
+          </div>
+        )}
+
+        {/* Error State */}
+        {error && !loading && (
+          <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center">
+            <p className="text-red-600 mb-4">{error}</p>
+            <button
+              onClick={fetchApplications}
+              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+            >
+              Retry
+            </button>
+          </div>
+        )}
+
+        {/* Empty State */}
+        {!loading && !error && applications.length === 0 && (
+          <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
+            <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg text-gray-900 mb-2">No applications yet</h3>
+            <p className="text-gray-600 mb-6">
+              Start applying to jobs to see them here
+            </p>
+            <button
+              onClick={() => navigate("/jobs")}
+              className="px-6 py-3 bg-chart-1 text-white rounded-lg hover:opacity-90"
+            >
+              Browse Jobs
+            </button>
+          </div>
+        )}
+
+        {/* Applications List */}
+        {!loading && !error && applications.length > 0 && (
+          <div className="bg-white rounded-xl border border-gray-200">
+            <div className="divide-y divide-gray-200">
+              {applications.map((application) => (
+                <div
+                  key={application._id}
+                  className="p-6 hover:bg-gray-50 transition-colors"
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2">
+                        <h3 className="text-lg text-gray-900">
+                          {application.jobPosting?.title || "Job Title"}
+                        </h3>
+                        <span
+                          className={`px-2 py-1 text-xs rounded-full ${getStatusColor(
+                            application.status
+                          )}`}
+                        >
+                          {getStatusLabel(application.status)}
+                        </span>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600 mb-3">
+                        <div className="flex items-center gap-1">
+                          <Building className="w-4 h-4" />
+                          <span>
+                            {application.jobPosting?.company?.companyName ||
+                              "Company"}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Calendar className="w-4 h-4" />
+                          <span>
+                            Applied {formatDate(application.createdAt)}
+                          </span>
+                        </div>
+                      </div>
+
+                      {application.coverLetter && (
+                        <p className="text-sm text-gray-600 line-clamp-2">
+                          {application.coverLetter}
+                        </p>
+                      )}
+                    </div>
+
+                    <button
+                      onClick={() =>
+                        navigate(`/jobs/${application.jobPosting?._id}`)
+                      }
+                      className="ml-4 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm"
+                    >
+                      View Job
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Pagination */}
+            {pagination.totalPages > 1 && (
+              <div className="p-4 border-t border-gray-200 flex items-center justify-between">
+                <div className="text-sm text-gray-600">
+                  Showing {(pagination.page - 1) * pagination.limit + 1} to{" "}
+                  {Math.min(
+                    pagination.page * pagination.limit,
+                    pagination.totalItems
+                  )}{" "}
+                  of {pagination.totalItems} applications
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() =>
+                      setPagination((prev) => ({
+                        ...prev,
+                        page: prev.page - 1,
+                      }))
+                    }
+                    disabled={!pagination.hasPrevPage}
+                    className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                  >
+                    Previous
+                  </button>
+
+                  <span className="px-4 py-2 text-sm text-gray-700">
+                    Page {pagination.page} of {pagination.totalPages}
+                  </span>
+
+                  <button
+                    onClick={() =>
+                      setPagination((prev) => ({
+                        ...prev,
+                        page: prev.page + 1,
+                      }))
+                    }
+                    disabled={!pagination.hasNextPage}
+                    className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </main>
+    </div>
+  );
+};
+
+export default ApplicationsPage;

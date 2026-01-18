@@ -15,6 +15,7 @@ import JobListingsPage from "./pages/jobs/JobListingsPage";
 import JobDetailsPage from "./pages/jobs/JobDetailsPage";
 import EmployerProfile from "./pages/profiles/EmployerProfile";
 import ApplicationsPage from "./pages/dashboard/ApplicationsPage";
+import JobApplicantsPage from "./pages/jobs/JobApplicantsPage";
 import ProtectedRoute from "./routes/ProtectedRoute";
 import useAuth from "./hooks/useAuth";
 import JobSeekerDashboardPage from "./pages/dashboard/JobSeekerDashboardPage";
@@ -96,6 +97,14 @@ const App = () => {
           element={
             <ProtectedRoute requireEmployer={true}>
               <EmployerProfile />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/employer/jobs/:jobId/applicants"
+          element={
+            <ProtectedRoute requireEmployer={true}>
+              <JobApplicantsPage />
             </ProtectedRoute>
           }
         />

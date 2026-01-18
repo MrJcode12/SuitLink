@@ -116,6 +116,8 @@ const JobSeekerDashboardPage = () => {
 
   const closeModal = () => {
     setSelectedJob(null);
+    // Refresh jobs in case user applied
+    fetchJobs();
   };
 
   const goToPage = (page) => {
@@ -156,7 +158,7 @@ const JobSeekerDashboardPage = () => {
                 <button
                   onClick={() => navigate("/applicant-dashboard")}
                   className={`text-sm font-medium pb-1 ${
-                    isActiveRoute("/jobs")
+                    isActiveRoute("/applicant-dashboard")
                       ? "text-chart-1 border-b-2 border-chart-1"
                       : "text-gray-600 hover:text-gray-900"
                   } py-1`}

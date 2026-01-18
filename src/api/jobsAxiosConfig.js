@@ -1,11 +1,11 @@
 import axios from "axios";
 
-const API_BASE_URL = "http://localhost:8888/api/v1/applications";
+const API_BASE_URL = "http://localhost:8888/api/v1/jobs";
 
 // Configure axios defaults
 axios.defaults.withCredentials = true;
 
-const applicationsApi = axios.create({
+const jobsApi = axios.create({
   baseURL: API_BASE_URL,
   withCredentials: true,
   headers: {
@@ -13,12 +13,13 @@ const applicationsApi = axios.create({
   },
 });
 
-// Response interceptor
-applicationsApi.interceptors.response.use(
+// Response interceptor for consistent error handling
+jobsApi.interceptors.response.use(
   (response) => response.data,
   (error) => {
     const message = error.response?.data?.message || "An error occurred";
     throw new Error(message);
   }
 );
-export default applicationsApi;
+
+export default jobsApi;
