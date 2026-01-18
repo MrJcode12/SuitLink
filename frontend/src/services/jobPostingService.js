@@ -31,29 +31,33 @@ class JobPostingService {
       company: company._id,
     });
 
-<<<<<<< HEAD
-    await CompanyProfile.findByIdAndUpdate(
-      company._id,
-      {
-        $inc: {
-          'metrics.jobPostsCount': 1,
-          'metrics.activeJobsCount': 1,
-        }
-      }
-    );
-=======
     // Update metrics after job creation
     await this.updateCompanyMetrics(company._id);
->>>>>>> 610a0dc (commit for rebase)
 
     return job;
   }
 
   // GET /
   static async getJobs(filters = {}, pagination = {}) {
-    const { employmentType, remote, salaryMin, salaryMax } = filters;
+    const { employmentType, remote, salaryMin, salaryMax, search } = filters;
     const { page = 1, limit = 10 } = pagination;
     const query = { status: "open" };
+
+    // Handle search parameter - search in job title or company name
+    if (search) {
+      // First, find companies that match the search term
+      const matchingCompanies = await CompanyProfile.find({
+        companyName: { $regex: search, $options: "i" },
+      }).select("_id");
+
+      const companyIds = matchingCompanies.map((c) => c._id);
+
+      // Search in both job title and matching company IDs
+      query.$or = [
+        { title: { $regex: search, $options: "i" } },
+        { company: { $in: companyIds } },
+      ];
+    }
 
     // Handle employmentType filter (can be single value or array)
     if (employmentType) {
@@ -158,25 +162,11 @@ class JobPostingService {
       throw new Error("Unauthorized!");
     }
 
-<<<<<<< HEAD
-    const oldStatus = job.status;
-
-    job.status = 'closed';
-    await job.save();
-
-    if (oldStatus === 'open') {
-      await CompanyProfile.findByIdAndUpdate(
-        job.company,
-        { $inc: { 'metrics.activeJobsCount': -1 } }
-      );
-    }
-=======
     job.status = "closed";
     await job.save();
 
     // Update metrics after closing
     await this.updateCompanyMetrics(job.company);
->>>>>>> 610a0dc (commit for rebase)
 
     return job;
   }
@@ -193,25 +183,11 @@ class JobPostingService {
       throw new Error("Unauthorized!");
     }
 
-<<<<<<< HEAD
-    const oldStatus = job.status;
-
-    job.status = 'open';
-    await job.save();
-
-    if (oldStatus === 'closed') {
-      await CompanyProfile.findByIdAndUpdate(
-        job.company,
-        { $inc: { 'metrics.activeJobsCount': 1 } }
-      );
-    }
-=======
     job.status = "open";
     await job.save();
 
     // Update metrics after reopening
     await this.updateCompanyMetrics(job.company);
->>>>>>> 610a0dc (commit for rebase)
 
     return job;
   }
