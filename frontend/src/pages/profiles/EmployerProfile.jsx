@@ -11,6 +11,7 @@ import IndustryInfo from "../../components/EmployerProfile/IndustryInfo";
 import CompanySize from "../../components/EmployerProfile/CompanySize";
 import EditCompanyProfileModal from "../../components/EmployerProfile/EditCompanyProfileModal";
 import Logo from "../../components/Auth/Shared/Logo";
+import EmployerNavbar from "../../components/EmployerDashboard/EmployerNavBar";
 
 const EmployerProfile = () => {
   const navigate = useNavigate();

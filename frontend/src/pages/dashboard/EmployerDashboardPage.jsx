@@ -1,11 +1,8 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import {
-  Plus,
-  Users,
-  Briefcase as BriefcaseIcon,
-} from "lucide-react";
+import { Plus, Users, Briefcase as BriefcaseIcon } from "lucide-react";
 import useAuth from "../../hooks/useAuth";
+import useApplicantCounts from "../../hooks/useApplicantCounts";
 import companyService from "../../services/companyService";
 import jobService from "../../services/jobService";
 import CompanySetupModal from "../../components/EmployerDashboard/CompanySetupModal";
@@ -27,6 +24,11 @@ const EmployerDashboardPage = () => {
   const [selectedJob, setSelectedJob] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeView, setActiveView] = useState("overview");
+
+  // Fetch applicant counts for all jobs
+  const { counts: applicantCounts, loading: countsLoading } = useApplicantCounts(
+    jobs
+  );
 
   useEffect(() => {
     if (!authLoading) {
@@ -159,7 +161,6 @@ const EmployerDashboardPage = () => {
   const activeJobs = companyProfile?.metrics?.activeJobsCount || 0;
   const totalJobs = companyProfile?.metrics?.jobPostsCount || 0;
   const totalApplicants = companyProfile?.metrics?.totalApplicants || 0;
-  const hasCredibilityBadge = companyProfile?.credibilityScore >= 6;
 
   if (authLoading || loading) {
     return (
@@ -268,6 +269,8 @@ const EmployerDashboardPage = () => {
                       <JobCard
                         key={job._id}
                         job={job}
+                        applicantCount={applicantCounts[job._id]}
+                        countsLoading={countsLoading}
                         onEdit={handleEditJob}
                         onClose={handleCloseJob}
                         onReopen={handleReopenJob}
@@ -288,7 +291,7 @@ const EmployerDashboardPage = () => {
                   {companyProfile?.credibilityScore || 0} / 10
                 </p>
 
-                {hasCredibilityBadge && (
+                {(companyProfile?.credibilityScore || 0) >= 6 && (
                   <div className="mt-3 inline-flex px-3 py-1 bg-emerald-50 text-emerald-700 rounded-lg text-sm font-medium">
                     Verified Company
                   </div>
@@ -307,8 +310,8 @@ const EmployerDashboardPage = () => {
                 ) : (
                   <div className="space-y-3">
                     <p className="text-sm text-gray-600">
-                      Applicants are coming in. View job-specific applicant lists
-                      to take action.
+                      Applicants are coming in. View job-specific applicant
+                      lists to take action.
                     </p>
 
                     <button

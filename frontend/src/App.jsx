@@ -19,6 +19,8 @@ import ApplicationsPage from "./pages/dashboard/ApplicationsPage";
 import ProtectedRoute from "./routes/ProtectedRoute";
 import useAuth from "./hooks/useAuth";
 import JobSeekerDashboardPage from "./pages/dashboard/JobSeekerDashboardPage";
+import EmployerApplicantsPage from "./pages/dashboard/EmployerApplicantsPage";
+import JobApplicantsPage from "./pages/dashboard/JobApplicantsPage";
 
 const NotFound = () => {
   return (
@@ -133,6 +135,22 @@ const App = () => {
               </ProtectedRoute>
             }
           />
+          <Route
+  path="/employer/applicants"
+  element={
+    <ProtectedRoute requireEmployer={true}>
+      <EmployerApplicantsPage />
+    </ProtectedRoute>
+  }
+/>
+<Route
+  path="/employer/jobs/:jobId/applicants"
+  element={
+    <ProtectedRoute requireEmployer={true}>
+      <JobApplicantsPage />
+    </ProtectedRoute>
+  }
+/>
 
           {/* Smart /dashboard redirect based on role */}
           <Route
