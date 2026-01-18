@@ -2,16 +2,16 @@ import ApplicantProfileService from "../services/applicantProfile.service.js";
 import { parseResume } from "../utils/resumeParser.utils.js";
 import { evaluateResume } from "../services/openaiResumeEvaluator.service.js";
 
-/* 
+/*
 ENDPOINTS (/api/v1/applicant/)
-  MAIN 
+  MAIN
     POST /profile - create profile
     GET /profile - get own profile
-    PATCH /profile - update some of the fields 
+    PATCH /profile - update some of the fields
     PUT /profile/avatar - replacing the avatar entirely with a picture
-  
+
   EDUCATION (subdocument)
-    POST /education 
+    POST /education
     PATCH /education/:educationId
     DELETE /education/:educationId
 
@@ -19,10 +19,10 @@ ENDPOINTS (/api/v1/applicant/)
     POST /experience
     PATCH /experience/:experienceId
     DELETE /experience/:experienceId
-  
+
   RESUME (cloudinary)
     POST /resume
-    DELETE /resume/:resumeId    
+    DELETE /resume/:resumeId
 */
 
 // POST /profile
@@ -31,7 +31,10 @@ const createProfile = async (req, res) => {
     const userId = req.user._id;
     const payload = req.body;
 
-    const profile = await ApplicantProfileService.createProfile(userId, payload);
+    const profile = await ApplicantProfileService.createProfile(
+      userId,
+      payload
+    );
 
     const responseObj = {
       success: true,
@@ -45,9 +48,9 @@ const createProfile = async (req, res) => {
       message: err.message,
     });
   }
-}
+};
 
-// GET /profile
+// GET /profile - FIXED: Return success with null data if no profile
 const getProfile = async (req, res) => {
   try {
     const userId = req.user._id;
@@ -56,7 +59,7 @@ const getProfile = async (req, res) => {
 
     const responseObj = {
       success: true,
-      data: profile,
+      data: profile, // Will be null if no profile exists
     };
 
     res.status(200).json(responseObj);
@@ -64,9 +67,9 @@ const getProfile = async (req, res) => {
     res.status(400).json({
       success: false,
       message: err.message,
-    })
+    });
   }
-}
+};
 
 // PATCH /profile
 const updateProfile = async (req, res) => {
@@ -74,7 +77,10 @@ const updateProfile = async (req, res) => {
     const userId = req.user._id;
     const payload = req.body;
 
-    const profile = await ApplicantProfileService.updateProfile(userId, payload);
+    const profile = await ApplicantProfileService.updateProfile(
+      userId,
+      payload
+    );
 
     const responseObj = {
       success: true,
@@ -88,7 +94,7 @@ const updateProfile = async (req, res) => {
       message: err.message,
     });
   }
-}
+};
 
 // PUT /profile/avatar
 const uploadAvatar = async (req, res) => {
@@ -96,7 +102,7 @@ const uploadAvatar = async (req, res) => {
     const userId = req.user._id;
 
     if (!req.file) {
-      throw new Error('Profile image is required.');
+      throw new Error("Profile image is required.");
     }
 
     const avatar = await ApplicantProfileService.uploadAvatar(userId, req.file);
@@ -105,15 +111,15 @@ const uploadAvatar = async (req, res) => {
       success: true,
       data: avatar,
     };
-    
+
     res.status(200).json(responseObj);
   } catch (err) {
     res.status(400).json({
       success: false,
-      message: err.message
+      message: err.message,
     });
   }
-}
+};
 
 // POST /education
 const createEducation = async (req, res) => {
@@ -121,7 +127,10 @@ const createEducation = async (req, res) => {
     const userId = req.user._id;
     const educationData = req.body;
 
-    const education = await ApplicantProfileService.addEducation(userId, educationData);
+    const education = await ApplicantProfileService.addEducation(
+      userId,
+      educationData
+    );
 
     const responseObj = {
       success: true,
@@ -135,7 +144,7 @@ const createEducation = async (req, res) => {
       message: err.message,
     });
   }
-}
+};
 
 // PATCH /education/:educationId
 const updateEducation = async (req, res) => {
@@ -144,7 +153,11 @@ const updateEducation = async (req, res) => {
     const { educationId } = req.params;
     const updateData = req.body;
 
-    const education = await ApplicantProfileService.updateEducation(userId, educationId, updateData);
+    const education = await ApplicantProfileService.updateEducation(
+      userId,
+      educationId,
+      updateData
+    );
 
     const responseObj = {
       success: true,
@@ -158,7 +171,7 @@ const updateEducation = async (req, res) => {
       message: err.message,
     });
   }
-}
+};
 
 // DELETE /education/:educationId
 const deleteEducation = async (req, res) => {
@@ -166,7 +179,10 @@ const deleteEducation = async (req, res) => {
     const userId = req.user._id;
     const { educationId } = req.params;
 
-    const education = await ApplicantProfileService.deleteEducation(userId, educationId);
+    const education = await ApplicantProfileService.deleteEducation(
+      userId,
+      educationId
+    );
 
     const responseObj = {
       success: true,
@@ -180,7 +196,7 @@ const deleteEducation = async (req, res) => {
       message: err.message,
     });
   }
-}
+};
 
 // POST /experience
 const createExperience = async (req, res) => {
@@ -188,7 +204,10 @@ const createExperience = async (req, res) => {
     const userId = req.user._id;
     const experienceData = req.body;
 
-    const experience = await ApplicantProfileService.addExperience(userId, experienceData);
+    const experience = await ApplicantProfileService.addExperience(
+      userId,
+      experienceData
+    );
 
     const responseObj = {
       success: true,
@@ -202,7 +221,7 @@ const createExperience = async (req, res) => {
       message: err.message,
     });
   }
-}
+};
 
 // PATCH /experience/:experienceId
 const updateExperience = async (req, res) => {
@@ -211,29 +230,11 @@ const updateExperience = async (req, res) => {
     const { experienceId } = req.params;
     const updateData = req.body;
 
-    const experience = await ApplicantProfileService.updateExperience(userId, experienceId, updateData);
-
-    const responseObj = {
-      success: true,
-      data: experience
-    };
-
-    res.status(200).json(responseObj);
-  } catch (err) {
-    res.status(400).json({
-      success: false,
-      message: err.message,
-    });
-  }
-}
-
-// DELETE /experience/:experienceId
-const deleteExperience = async (req, res) => {
-  try {
-    const userId = req.user._id;
-    const { experienceId } = req.params;
-
-    const experience = await ApplicantProfileService.deleteExperience(userId, experienceId);
+    const experience = await ApplicantProfileService.updateExperience(
+      userId,
+      experienceId,
+      updateData
+    );
 
     const responseObj = {
       success: true,
@@ -247,7 +248,32 @@ const deleteExperience = async (req, res) => {
       message: err.message,
     });
   }
-}
+};
+
+// DELETE /experience/:experienceId
+const deleteExperience = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const { experienceId } = req.params;
+
+    const experience = await ApplicantProfileService.deleteExperience(
+      userId,
+      experienceId
+    );
+
+    const responseObj = {
+      success: true,
+      data: experience,
+    };
+
+    res.status(200).json(responseObj);
+  } catch (err) {
+    res.status(400).json({
+      success: false,
+      message: err.message,
+    });
+  }
+};
 
 // POST /resume
 const uploadResume = async (req, res) => {
@@ -255,7 +281,7 @@ const uploadResume = async (req, res) => {
     const userId = req.user._id;
 
     if (!req.file) {
-      throw new Error('Resume file is required.');
+      throw new Error("Resume file is required.");
     }
 
     const resume = await ApplicantProfileService.uploadResume(userId, req.file);
@@ -271,15 +297,15 @@ const uploadResume = async (req, res) => {
         resumeAnalyzedAt: new Date(),
       });
     } catch (aiErr) {
-      console.error('Resume evaluation failed:', aiErr.message);
+      console.error("Resume evaluation failed:", aiErr.message);
     }
 
     const responseObj = {
       success: true,
       data: {
         resume,
-        resumeAnalysis
-      }
+        resumeAnalysis,
+      },
     };
 
     res.status(201).json(responseObj);
@@ -296,7 +322,10 @@ const deleteResume = async (req, res) => {
     const userId = req.user._id;
     const { resumeId } = req.params;
 
-    const resumes = await ApplicantProfileService.deleteResume(userId, resumeId);
+    const resumes = await ApplicantProfileService.deleteResume(
+      userId,
+      resumeId
+    );
 
     const responseObj = {
       success: true,
@@ -310,7 +339,7 @@ const deleteResume = async (req, res) => {
       message: err.message,
     });
   }
-}
+};
 
 export {
   createProfile,
@@ -324,5 +353,5 @@ export {
   updateExperience,
   deleteExperience,
   uploadResume,
-  deleteResume
+  deleteResume,
 };

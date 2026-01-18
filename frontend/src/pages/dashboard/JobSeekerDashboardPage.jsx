@@ -90,15 +90,18 @@ const JobSeekerDashboardPage = () => {
       const response = await applicantService.getProfile();
 
       if (response.success) {
-        if (!response.data) {
+        // Profile data will be null if no profile exists
+        if (!response.data || response.data === null) {
           setShowSetupModal(true);
           setApplicantProfile(null);
         } else {
           setApplicantProfile(response.data);
+          setShowSetupModal(false);
         }
       }
     } catch (err) {
       console.error("Failed to fetch applicant profile:", err);
+      // On any error, show setup modal
       setShowSetupModal(true);
       setApplicantProfile(null);
     } finally {
