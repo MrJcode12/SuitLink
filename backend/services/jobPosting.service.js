@@ -1,26 +1,28 @@
-import JobPosting from '../models/JobPosting.js';
-import CompanyProfile from '../models/CompanyProfile.js'
-
-/*
-  ENDPOINTS (/api/v1/jobs)
-    POST /
-    GET /
-    GET /:jobId
-    GET /my-jobs
-    PATCH /:jobId
-    PATCH /:jobId/close
-    PATCH /:jobId/open
-*/
-
+import JobPosting from "../models/JobPosting.js";
+import CompanyProfile from "../models/CompanyProfile.js";
 
 class JobPostingService {
+  // Helper: Update company metrics
+  static async updateCompanyMetrics(companyId) {
+    const [totalJobs, activeJobs] = await Promise.all([
+      JobPosting.countDocuments({ company: companyId }),
+      JobPosting.countDocuments({ company: companyId, status: "open" }),
+    ]);
+
+    await CompanyProfile.findByIdAndUpdate(companyId, {
+      $set: {
+        "metrics.jobPostsCount": totalJobs,
+        "metrics.activeJobsCount": activeJobs,
+      },
+    });
+  }
 
   // POST /
   static async createJob(employerId, jobData) {
     const company = await CompanyProfile.findOne({ user: employerId });
 
     if (!company) {
-      throw new Error('Company profile not found');
+      throw new Error("Company profile not found");
     }
 
     const job = await JobPosting.create({
@@ -29,6 +31,9 @@ class JobPostingService {
       company: company._id,
     });
 
+    // Update metrics after job creation
+    await this.updateCompanyMetrics(company._id);
+
     return job;
   }
 
@@ -36,60 +41,73 @@ class JobPostingService {
   static async getJobs(filters = {}, pagination = {}) {
     const { employmentType, remote, salaryMin, salaryMax } = filters;
     const { page = 1, limit = 10 } = pagination;
-    const query = { status: 'open' };
+    const query = { status: "open" };
 
-    if (employmentType?.length) {
-      query.employmentType = { $in: employmentType };
+    // Handle employmentType filter (can be single value or array)
+    if (employmentType) {
+      if (Array.isArray(employmentType)) {
+        query.employmentType = { $in: employmentType };
+      } else {
+        query.employmentType = employmentType;
+      }
     }
 
-    if (remote !== undefined) {
-      query.remote = remote;
+    // Handle remote filter
+    if (remote !== undefined && remote !== null && remote !== "") {
+      query.remote = remote === "true" || remote === true;
     }
 
+    // Handle salary filters
     if (salaryMin) {
-      query['salaryRange.min'] = { $gte: salaryMin };
+      query["salaryRange.min"] = { $gte: Number(salaryMin) };
     }
 
     if (salaryMax) {
-      query['salaryRange.max'] = { $lte: salaryMax };
+      query["salaryRange.max"] = { $lte: Number(salaryMax) };
     }
 
     const skip = (page - 1) * limit;
     const [jobs, total] = await Promise.all([
       JobPosting.find(query)
-        .populate('company', 'companyName logo industry')
+        .populate("company", "companyName logo industry location")
         .sort({ createdAt: -1 })
         .skip(skip)
-        .limit(limit),
+        .limit(Number(limit)),
       JobPosting.countDocuments(query),
     ]);
 
     return {
       jobs,
-      pagination : {
-        page,
-        limit,
+      pagination: {
+        page: Number(page),
+        limit: Number(limit),
         totalItems: total,
         totalPages: Math.ceil(total / limit),
+        hasNextPage: page * limit < total,
+        hasPrevPage: page > 1,
       },
     };
   }
 
   // GET /:jobId
   static async getJobById(jobId) {
-    const job = await JobPosting.findOne({ _id: jobId, status: 'open' })
-      .populate('company', 'companyName description logo industry location');
-    
-      if (!job) {
-        throw new Error('Job not found');
-      }
-    
+    const job = await JobPosting.findById(jobId).populate(
+      "company",
+      "companyName description logo industry location"
+    );
+
+    if (!job) {
+      throw new Error("Job not found");
+    }
+
     return job;
   }
 
   // GET /my-jobs
   static async getEmployerJobs(employerId) {
-    const jobs = await JobPosting.find({ employer: employerId }).sort({ createdAt: -1 });
+    const jobs = await JobPosting.find({ employer: employerId })
+      .populate("company", "companyName")
+      .sort({ createdAt: -1 });
 
     return jobs;
   }
@@ -99,11 +117,11 @@ class JobPostingService {
     const job = await JobPosting.findById(jobId);
 
     if (!job) {
-      throw new Error('Job not found');
+      throw new Error("Job not found");
     }
 
     if (!job.employer.equals(employerId)) {
-      throw new Error('Unauthorized!')
+      throw new Error("Unauthorized!");
     }
 
     delete updates.employer;
@@ -121,15 +139,18 @@ class JobPostingService {
     const job = await JobPosting.findById(jobId);
 
     if (!job) {
-      throw new Error('Job not found');
+      throw new Error("Job not found");
     }
 
     if (!job.employer.equals(employerId)) {
-      throw new Error('Unauthorized!');
+      throw new Error("Unauthorized!");
     }
 
-    job.status = 'closed';
+    job.status = "closed";
     await job.save();
+
+    // Update metrics after closing
+    await this.updateCompanyMetrics(job.company);
 
     return job;
   }
@@ -139,15 +160,18 @@ class JobPostingService {
     const job = await JobPosting.findById(jobId);
 
     if (!job) {
-      throw new Error('Job not found');
+      throw new Error("Job not found");
     }
 
     if (!job.employer.equals(employerId)) {
-      throw new Error('Unauthorized!');
+      throw new Error("Unauthorized!");
     }
 
-    job.status = 'open';
+    job.status = "open";
     await job.save();
+
+    // Update metrics after reopening
+    await this.updateCompanyMetrics(job.company);
 
     return job;
   }

@@ -1,10 +1,10 @@
 import { useNavigate } from "react-router-dom";
-import PostJobHeader from "../../components/PostJobPage/PostJobHeader";
-import BasicInfoSection from "../../components/PostJobPage/BasicInfoSection";
-import JobDescriptionSection from "../../components/PostJobPage/JobDescriptionSection";
-import SkillsSection from "../../components/PostJobPage/SkillsSection";
-import FormActions from "../../components/PostJobPage/FormActions";
+import { ArrowLeft } from "lucide-react";
 import useJobForm from "../../hooks/useJobForm";
+import jobService from "../../services/jobService";
+import BasicInfoSection from "../../components/JobForm/BasicInfoSection";
+import DescriptionSection from "../../components/JobForm/DescriptionSection";
+import RequirementsSection from "../../components/JobForm/RequirementsSection";
 
 const PostJobPage = () => {
   const navigate = useNavigate();
@@ -14,35 +14,14 @@ const PostJobPage = () => {
     isSubmitting,
     setIsSubmitting,
     handleChange,
+    handleNestedChange,
     handleSkillsChange,
     validateForm,
-    resetForm,
+    getSubmitData,
   } = useJobForm();
 
   const handleBack = () => {
-    navigate("/dashboard");
-  };
-
-  const handlePreview = () => {
-    // TODO: Implement preview functionality
-    console.log("Preview job posting:", formData);
-  };
-
-  const handleSaveDraft = async () => {
-    try {
-      setIsSubmitting(true);
-      // TODO: Call API to save draft
-      // await jobService.saveDraft(formData);
-      console.log("Saving draft:", formData);
-
-      // Show success message
-      alert("Draft saved successfully!");
-    } catch (error) {
-      console.error("Error saving draft:", error);
-      alert("Failed to save draft. Please try again.");
-    } finally {
-      setIsSubmitting(false);
-    }
+    navigate("/employer-dashboard");
   };
 
   const handleSubmit = async (e) => {
@@ -50,7 +29,7 @@ const PostJobPage = () => {
 
     if (!validateForm()) {
       // Scroll to first error
-      const firstError = document.querySelector('[class*="text-destructive"]');
+      const firstError = document.querySelector('[class*="text-red"]');
       if (firstError) {
         firstError.scrollIntoView({ behavior: "smooth", block: "center" });
       }
@@ -60,34 +39,55 @@ const PostJobPage = () => {
     try {
       setIsSubmitting(true);
 
-      // TODO: Call API to publish job
-      // await jobService.createJob(formData);
-      console.log("Publishing job:", formData);
+      const submitData = getSubmitData();
+      const response = await jobService.createJob(submitData);
 
-      // Show success message and redirect
-      alert("Job posted successfully!");
-      navigate("/dashboard");
+      if (response.success) {
+        navigate("/employer-dashboard");
+      }
     } catch (error) {
       console.error("Error publishing job:", error);
-      alert("Failed to publish job. Please try again.");
+      alert(error.message || "Failed to publish job. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handlePublish = () => {
-    // Trigger form submission
-    document.getElementById("post-job-form").requestSubmit();
-  };
-
   return (
     <div className="min-h-screen bg-gray-50">
-      <PostJobHeader
-        onBack={handleBack}
-        onPreview={handlePreview}
-        onPublish={handlePublish}
-        isSubmitting={isSubmitting}
-      />
+      {/* Header */}
+      <header className="bg-white border-b border-gray-200 sticky top-0 z-40">
+        <div className="px-6 py-4">
+          <div className="flex items-center justify-between">
+            <button
+              onClick={handleBack}
+              className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900"
+            >
+              <ArrowLeft className="w-5 h-5" />
+              <span className="text-sm">Back to Dashboard</span>
+            </button>
+
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={handleBack}
+                disabled={isSubmitting}
+                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                form="post-job-form"
+                disabled={isSubmitting}
+                className="px-4 py-2 bg-chart-1 text-white rounded-lg hover:opacity-90 text-sm disabled:opacity-50"
+              >
+                {isSubmitting ? "Publishing..." : "Publish Job"}
+              </button>
+            </div>
+          </div>
+        </div>
+      </header>
 
       <div className="max-w-4xl mx-auto p-6">
         {/* Page Header */}
@@ -99,33 +99,24 @@ const PostJobPage = () => {
         </div>
 
         {/* Form */}
-        <form
-          id="post-job-form"
-          onSubmit={handleSubmit}
-          className="space-y-6 bg-white "
-        >
+        <form id="post-job-form" onSubmit={handleSubmit} className="space-y-6">
           <BasicInfoSection
             formData={formData}
             onChange={handleChange}
             errors={errors}
           />
 
-          <JobDescriptionSection
+          <DescriptionSection
             formData={formData}
             onChange={handleChange}
             errors={errors}
           />
 
-          <SkillsSection
-            skills={formData.skills}
+          <RequirementsSection
+            formData={formData}
             onSkillsChange={handleSkillsChange}
-          />
-
-          <FormActions
-            onCancel={handleBack}
-            onSaveDraft={handleSaveDraft}
-            onPublish={handlePublish}
-            isSubmitting={isSubmitting}
+            onNestedChange={handleNestedChange}
+            errors={errors}
           />
         </form>
       </div>

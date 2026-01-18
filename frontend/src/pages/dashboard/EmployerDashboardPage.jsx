@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  Briefcase,
   Plus,
   Bell,
   Users,
@@ -15,6 +14,7 @@ import jobService from "../../services/jobService";
 import CompanySetupModal from "../../components/EmployerDashboard/CompanySetupModal";
 import JobCard from "../../components/EmployerDashboard/JobCard";
 import StatsCard from "../../components/EmployerDashboard/StatsCard";
+import EditJobModal from "../../components/EmployerDashboard/EditJobModal";
 import Logo from "../../components/Auth/Shared/Logo";
 
 const EmployerDashboardPage = () => {
@@ -24,6 +24,8 @@ const EmployerDashboardPage = () => {
   const [companyProfile, setCompanyProfile] = useState(null);
   const [jobs, setJobs] = useState([]);
   const [showSetupModal, setShowSetupModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [selectedJob, setSelectedJob] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("overview");
 
@@ -57,20 +59,16 @@ const EmployerDashboardPage = () => {
       setLoading(true);
       const response = await companyService.getProfile();
 
-      // ✅ FIX: Check for needsSetup flag or null data
       if (response.success) {
         if (response.needsSetup || !response.data) {
-          // No profile exists - show setup modal
           setShowSetupModal(true);
           setCompanyProfile(null);
         } else {
-          // Profile exists - use it
           setCompanyProfile(response.data);
         }
       }
     } catch (err) {
       console.error("Failed to fetch company profile:", err);
-      // On any error, show setup modal
       setShowSetupModal(true);
       setCompanyProfile(null);
     } finally {
@@ -92,12 +90,10 @@ const EmployerDashboardPage = () => {
 
   const handleSetupSuccess = async () => {
     setShowSetupModal(false);
-    // ✅ FIX: Refetch profile after successful setup
     await fetchCompanyProfile();
   };
 
   const handlePostJob = () => {
-    // ✅ FIX: Only allow job posting if profile exists
     if (!companyProfile) {
       alert("Please complete your company profile first");
       setShowSetupModal(true);
@@ -116,19 +112,61 @@ const EmployerDashboardPage = () => {
   };
 
   const handleEditJob = (job) => {
-    navigate(`/employer/edit-job/${job._id}`);
+    setSelectedJob(job);
+    setShowEditModal(true);
+  };
+
+  const handleCloseJob = async (job) => {
+    if (!confirm(`Are you sure you want to close "${job.title}"?`)) {
+      return;
+    }
+
+    try {
+      const response = await jobService.closeJob(job._id);
+
+      if (response.success) {
+        alert("Job closed successfully!");
+        await fetchJobs();
+        await fetchCompanyProfile(); // Refresh metrics
+      }
+    } catch (error) {
+      console.error("Error closing job:", error);
+      alert(error.message || "Failed to close job. Please try again.");
+    }
+  };
+
+  const handleReopenJob = async (job) => {
+    if (!confirm(`Are you sure you want to reopen "${job.title}"?`)) {
+      return;
+    }
+
+    try {
+      const response = await jobService.reopenJob(job._id);
+
+      if (response.success) {
+        alert("Job reopened successfully!");
+        await fetchJobs();
+        await fetchCompanyProfile(); // Refresh metrics
+      }
+    } catch (error) {
+      console.error("Error reopening job:", error);
+      alert(error.message || "Failed to reopen job. Please try again.");
+    }
   };
 
   const handleViewApplicants = (job) => {
     navigate(`/employer/jobs/${job._id}/applicants`);
   };
 
-  // Calculate stats from jobs
-  const activeJobs = jobs.filter((job) => job.status === "open").length;
-  const totalApplicants = jobs.reduce(
-    (sum, job) => sum + (job.applicantsCount || 0),
-    0
-  );
+  const handleEditSuccess = async () => {
+    await fetchJobs();
+    await fetchCompanyProfile();
+  };
+
+  // Calculate stats from jobs and profile metrics
+  const activeJobs = companyProfile?.metrics?.activeJobsCount || 0;
+  const totalJobs = companyProfile?.metrics?.jobPostsCount || 0;
+  const totalApplicants = companyProfile?.metrics?.totalApplicants || 0;
   const hasCredibilityBadge = companyProfile?.credibilityScore >= 6;
 
   if (authLoading || loading) {
@@ -146,6 +184,17 @@ const EmployerDashboardPage = () => {
     <>
       {(showSetupModal || !companyProfile) && (
         <CompanySetupModal onSuccess={handleSetupSuccess} />
+      )}
+
+      {showEditModal && selectedJob && (
+        <EditJobModal
+          job={selectedJob}
+          onClose={() => {
+            setShowEditModal(false);
+            setSelectedJob(null);
+          }}
+          onSuccess={handleEditSuccess}
+        />
       )}
 
       <div className="min-h-screen bg-gray-50">
@@ -176,6 +225,12 @@ const EmployerDashboardPage = () => {
                   } py-1`}
                 >
                   My Jobs
+                </button>
+                <button
+                  onClick={() => navigate("/jobs")}
+                  className="text-sm font-medium text-gray-600 hover:text-gray-900 py-1"
+                >
+                  Browse Jobs
                 </button>
               </nav>
 
@@ -212,6 +267,11 @@ const EmployerDashboardPage = () => {
               trend={true}
             />
             <StatsCard
+              icon={BriefcaseIcon}
+              value={totalJobs.toString()}
+              label="Total Jobs Posted"
+            />
+            <StatsCard
               icon={Users}
               value={totalApplicants.toString()}
               label="Total Applicants"
@@ -221,9 +281,7 @@ const EmployerDashboardPage = () => {
               icon={Eye}
               value={companyProfile?.metrics?.totalViews || "0"}
               label="Profile Views"
-              trend={true}
             />
-            <StatsCard icon={MessageSquare} value="0" label="New Messages" />
           </div>
 
           {/* Credibility Score Display */}
@@ -286,6 +344,8 @@ const EmployerDashboardPage = () => {
                       key={job._id}
                       job={job}
                       onEdit={handleEditJob}
+                      onClose={handleCloseJob}
+                      onReopen={handleReopenJob}
                       onViewApplicants={handleViewApplicants}
                     />
                   ))

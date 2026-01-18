@@ -10,6 +10,8 @@ import ResetPassPage from "./pages/auth/ResetPassPage";
 import LandingPage from "./pages/landingPage/LandingPage";
 import EmployerDashboardPage from "./pages/dashboard/EmployerDashboardPage";
 import PostJobPage from "./pages/dashboard/PostJobPage";
+import JobListingsPage from "./pages/jobs/JobListingsPage";
+import JobDetailsPage from "./pages/jobs/JobDetailsPage";
 import EmployerProfile from "./pages/profiles/EmployerProfile";
 import ProtectedRoute from "./routes/ProtectedRoute";
 import useAuth from "./hooks/useAuth";
@@ -32,7 +34,7 @@ const NotFound = () => {
   );
 };
 
-// ✅ ADD: Temporary Applicant Dashboard (placeholder)
+// Temporary Applicant Dashboard (placeholder)
 const ApplicantDashboardPage = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -71,6 +73,24 @@ const App = () => {
           element={<ForgotPassSuccessPage />}
         />
 
+        {/* Job Browsing - Public/Protected */}
+        <Route
+          path="/jobs"
+          element={
+            <ProtectedRoute>
+              <JobListingsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/jobs/:jobId"
+          element={
+            <ProtectedRoute>
+              <JobDetailsPage />
+            </ProtectedRoute>
+          }
+        />
+
         {/* Employer Protected Routes */}
         <Route
           path="/employer-dashboard"
@@ -97,7 +117,7 @@ const App = () => {
           }
         />
 
-        {/* ✅ ADD: Applicant Protected Routes */}
+        {/* Applicant Protected Routes */}
         <Route
           path="/applicant-dashboard"
           element={
@@ -107,7 +127,7 @@ const App = () => {
           }
         />
 
-        {/* ✅ FIX: Smart /dashboard redirect based on role */}
+        {/* Smart /dashboard redirect based on role */}
         <Route
           path="/dashboard"
           element={
@@ -127,7 +147,7 @@ const App = () => {
   );
 };
 
-// ✅ ADD: Smart redirect component that checks user role
+// Smart redirect component that checks user role
 const SmartDashboardRedirect = () => {
   const { user, loading } = useAuth();
 
