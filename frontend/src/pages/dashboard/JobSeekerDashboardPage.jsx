@@ -17,10 +17,15 @@ const JobSeekerDashboardPage = () => {
   const { user, loading: authLoading, isApplicant } = useAuth();
 
   const [bookmarkedJobIds, setBookmarkedJobIds] = useState(new Set());
+
+  // Profile state with explicit loading flags
   const [applicantProfile, setApplicantProfile] = useState(null);
+  const [profileLoading, setProfileLoading] = useState(true);
+  const [profileLoaded, setProfileLoaded] = useState(false);
   const [showSetupModal, setShowSetupModal] = useState(false);
+
   const [jobs, setJobs] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [jobsLoading, setJobsLoading] = useState(false);
   const [error, setError] = useState("");
   const [appliedJobIds, setAppliedJobIds] = useState(new Set());
   const [searchInput, setSearchInput] = useState("");
@@ -50,47 +55,54 @@ const JobSeekerDashboardPage = () => {
     }
   }, [user, authLoading, isApplicant, navigate]);
 
+  // Fetch applicant profile ONCE on mount
   useEffect(() => {
-    if (user && isApplicant) fetchApplicantProfile();
-  }, [user, isApplicant]);
+    if (user && isApplicant && !profileLoaded) {
+      fetchApplicantProfile();
+    }
+  }, [user, isApplicant, profileLoaded]);
+
+  // Fetch applied jobs when profile exists
   useEffect(() => {
-    if (applicantProfile) fetchAppliedJobs();
-  }, [applicantProfile]);
+    if (applicantProfile && profileLoaded) {
+      fetchAppliedJobs();
+    }
+  }, [applicantProfile, profileLoaded]);
+
+  // Fetch jobs when filters change or profile is loaded
   useEffect(() => {
-    fetchJobs();
-  }, [pagination.page, filters]);
+    if (profileLoaded) {
+      fetchJobs();
+    }
+  }, [pagination.page, filters, profileLoaded]);
 
   const fetchApplicantProfile = async () => {
     try {
-      setLoading(true);
+      setProfileLoading(true);
       const response = await applicantService.getProfile();
+
       if (response.success) {
         if (!response.data) {
+          // No profile exists - show setup modal
           setShowSetupModal(true);
           setApplicantProfile(null);
         } else {
+          // Profile exists
           setApplicantProfile(response.data);
           setShowSetupModal(false);
         }
       }
-    } catch {
-      setShowSetupModal(true);
-      setApplicantProfile(null);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleBookmarkToggle = (jobId) => {
-    setBookmarkedJobIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(jobId)) {
-        next.delete(jobId);
-      } else {
-        next.add(jobId);
+    } catch (err) {
+      console.error("Failed to fetch applicant profile:", err);
+      // Only show setup modal on actual "not found" errors
+      if (err.message?.includes("not found") || err.message?.includes("does not exist")) {
+        setShowSetupModal(true);
+        setApplicantProfile(null);
       }
-      return next;
-    });
+    } finally {
+      setProfileLoading(false);
+      setProfileLoaded(true);
+    }
   };
 
   const fetchAppliedJobs = async () => {
@@ -110,7 +122,8 @@ const JobSeekerDashboardPage = () => {
         );
         setAppliedJobIds(appliedIds);
       }
-    } catch {
+    } catch (err) {
+      console.error("Error fetching applied jobs:", err);
       setAppliedJobIds(new Set());
     }
   };
@@ -118,8 +131,9 @@ const JobSeekerDashboardPage = () => {
   const fetchJobs = async () => {
     if (abortControllerRef.current) abortControllerRef.current.abort();
     abortControllerRef.current = new AbortController();
+
     try {
-      setLoading(true);
+      setJobsLoading(true);
       setError("");
       const params = {
         page: pagination.page,
@@ -141,10 +155,12 @@ const JobSeekerDashboardPage = () => {
         );
       }
     } catch (err) {
-      if (err.name !== "AbortError")
+      if (err.name !== "AbortError") {
+        console.error("Error fetching jobs:", err);
         setError(err.message || "Failed to load jobs");
+      }
     } finally {
-      setLoading(false);
+      setJobsLoading(false);
     }
   };
 
@@ -152,43 +168,55 @@ const JobSeekerDashboardPage = () => {
     setFilters((prev) => ({ ...prev, search: searchInput.trim() }));
     setPagination((prev) => ({ ...prev, page: 1 }));
   };
+
   const handleSearchKeyPress = (e) => {
     if (e.key === "Enter") {
       e.preventDefault();
       handleSearch();
     }
   };
+
   const handleClearSearch = () => {
     setSearchInput("");
     setFilters((prev) => ({ ...prev, search: "" }));
     setPagination((prev) => ({ ...prev, page: 1 }));
   };
+
   const handleFilterChange = (key, value) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
     setPagination((prev) => ({ ...prev, page: 1 }));
   };
+
   const handleJobClick = (jobId) => {
     const job = jobs.find((j) => j._id === jobId);
     if (job) setSelectedJob(job);
   };
+
   const handleApplySuccess = (jobId) => {
     setAppliedJobIds((prev) => new Set([...prev, jobId]));
     fetchAppliedJobs();
   };
+
   const closeModal = () => setSelectedJob(null);
+
   const goToPage = (page) => setPagination((prev) => ({ ...prev, page }));
+
   const nextPage = () => {
     if (pagination.hasNextPage)
       setPagination((prev) => ({ ...prev, page: prev.page + 1 }));
   };
+
   const prevPage = () => {
     if (pagination.hasPrevPage)
       setPagination((prev) => ({ ...prev, page: prev.page - 1 }));
   };
+
   const handleSetupSuccess = async () => {
     setShowSetupModal(false);
+    setProfileLoaded(false); // Force refetch
     await fetchApplicantProfile();
   };
+
   const handleResetFilters = () => {
     setFilters({
       search: "",
@@ -197,25 +225,43 @@ const JobSeekerDashboardPage = () => {
       salaryMin: "",
       salaryMax: "",
     });
-    setSearchInput(""); // Also clear the search input
+    setSearchInput("");
     setPagination((prev) => ({ ...prev, page: 1 }));
   };
 
-  if (authLoading)
+  const handleBookmarkToggle = (jobId) => {
+    setBookmarkedJobIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(jobId)) {
+        next.delete(jobId);
+      } else {
+        next.add(jobId);
+      }
+      return next;
+    });
+  };
+
+  // Show loading only while auth or profile is initially loading
+  if (authLoading || (profileLoading && !profileLoaded)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600 mx-auto"></div>
-          <p className="text-gray-500 mt-4">Loading...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600 mx-auto mb-4"></div>
+          <p className="text-gray-500">Loading...</p>
         </div>
       </div>
     );
+  }
+
+  // Only show setup modal if profile is confirmed to not exist
+  const shouldShowSetupModal = profileLoaded && showSetupModal && !applicantProfile;
 
   return (
     <>
-      {(showSetupModal || !applicantProfile) && (
+      {shouldShowSetupModal && (
         <ApplicantProfileSetupModal onSuccess={handleSetupSuccess} />
       )}
+
       {selectedJob && (
         <JobModal
           job={selectedJob}
@@ -224,6 +270,7 @@ const JobSeekerDashboardPage = () => {
           onApplySuccess={handleApplySuccess}
         />
       )}
+
       <div className="min-h-screen bg-gray-50">
         <header className="bg-white border-b border-gray-200 sticky top-0 z-40">
           <ApplicantNavbar />
@@ -231,19 +278,7 @@ const JobSeekerDashboardPage = () => {
 
         <div className="flex w-full">
           {/* Sidebar */}
-          <aside
-            className={`
-        hidden lg:flex
-        flex-col
-        w-72
-        h-[calc(100vh-4rem)]
-        bg-white
-        border-r border-gray-200
-        p-6
-        sticky top-16
-        overflow-y-auto
-      `}
-          >
+          <aside className="hidden lg:flex flex-col w-72 h-[calc(100vh-4rem)] bg-white border-r border-gray-200 p-6 sticky top-16 overflow-y-auto">
             <h3 className="text-lg text-gray-900 font-medium mb-4">Filters</h3>
             <div className="space-y-4 flex-1">
               {/* Employment Type */}
@@ -318,20 +353,7 @@ const JobSeekerDashboardPage = () => {
             <button
               type="button"
               onClick={handleResetFilters}
-              className="
-    w-full
-    text-sm
-    font-medium
-    text-emerald-700
-    bg-emerald-50
-    px-3
-    py-2
-    rounded-lg
-    transition
-    hover:bg-emerald-100
-    hover:text-emerald-800
-    active:bg-emerald-200
-  "
+              className="w-full text-sm font-medium text-emerald-700 bg-emerald-50 px-3 py-2 rounded-lg transition hover:bg-emerald-100 hover:text-emerald-800 active:bg-emerald-200"
             >
               Reset all filters
             </button>
@@ -385,7 +407,7 @@ const JobSeekerDashboardPage = () => {
             {/* Job Cards Grid */}
             <JobGrid
               jobs={jobs}
-              loading={loading}
+              loading={jobsLoading}
               error={error}
               appliedJobIds={appliedJobIds}
               onJobClick={handleJobClick}
@@ -393,7 +415,7 @@ const JobSeekerDashboardPage = () => {
               onBookmarkToggle={handleBookmarkToggle}
             />
 
-            {!loading && !error && jobs.length > 0 && (
+            {!jobsLoading && !error && jobs.length > 0 && (
               <div className="mt-6">
                 <Pagination
                   pagination={pagination}
@@ -403,6 +425,7 @@ const JobSeekerDashboardPage = () => {
                 />
               </div>
             )}
+
             {/* Footer / Dynamic Info Section */}
             <div className="mt-8 bg-emerald-700 text-white rounded-xl p-6">
               <h3 className="text-lg font-medium">

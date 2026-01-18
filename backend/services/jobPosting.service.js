@@ -73,7 +73,10 @@ class JobPostingService {
     const skip = (page - 1) * limit;
     const [jobs, total] = await Promise.all([
       JobPosting.find(query)
-        .populate("company", "companyName logo industry location")
+        .populate({
+          path: "company",
+          select: "companyName logo industry location credibilityScore"
+        })
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(Number(limit)),
@@ -95,10 +98,10 @@ class JobPostingService {
 
   // GET /:jobId
   static async getJobById(jobId) {
-    const job = await JobPosting.findById(jobId).populate(
-      "company",
-      "companyName description logo industry location"
-    );
+    const job = await JobPosting.findById(jobId).populate({
+      path: "company",
+      select: "companyName description logo industry location credibilityScore"
+    });
 
     if (!job) {
       throw new Error("Job not found");
@@ -110,7 +113,7 @@ class JobPostingService {
   // GET /my-jobs
   static async getEmployerJobs(employerId) {
     const jobs = await JobPosting.find({ employer: employerId })
-      .populate("company", "companyName")
+      .populate("company", "companyName credibilityScore")
       .sort({ createdAt: -1 });
 
     return jobs;

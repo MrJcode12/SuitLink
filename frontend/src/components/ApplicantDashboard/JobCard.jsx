@@ -5,6 +5,7 @@ import {
   Building,
   CheckCircle,
   Bookmark,
+  BadgeCheck,
 } from "lucide-react";
 
 const JobCard = ({
@@ -45,29 +46,35 @@ const JobCard = ({
     return `${Math.floor(diffDays / 30)} months ago`;
   };
 
+  // Check if company is verified (credibilityScore >= 6)
+  const isCompanyVerified = job.company?.credibilityScore >= 6;
+
   return (
     <div
       onClick={() => onClick?.(job._id)}
       className="relative bg-white rounded-xl border border-gray-200 p-6 hover:shadow-lg transition-all cursor-pointer group"
     >
       {/* Bookmark Icon */}
-      <button
-        type="button"
-        onClick={(e) => {
-          e.stopPropagation();
-          if (onBookmarkToggle) onBookmarkToggle(job._id);
-        }}
-        className={`absolute top-4 right-4 p-1.5 rounded-full transition-colors ${
-          isBookmarked
-            ? "bg-emerald-600 text-white hover:bg-emerald-700"
-            : "bg-gray-100 text-gray-500 hover:bg-gray-200"
-        }`}
-      >
-        <Bookmark className="w-5 h-5" />
-      </button>
+      {onBookmarkToggle && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onBookmarkToggle(job._id);
+          }}
+          className={`absolute top-4 right-4 p-1.5 rounded-full transition-colors ${
+            isBookmarked
+              ? "bg-emerald-600 text-white hover:bg-emerald-700"
+              : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+          }`}
+          aria-label={isBookmarked ? "Remove bookmark" : "Add bookmark"}
+        >
+          <Bookmark className="w-5 h-5" />
+        </button>
+      )}
 
       <div className="flex items-start justify-between mb-4">
-        <div className="flex items-start gap-3 flex-1">
+        <div className="flex items-start gap-3 flex-1 mr-12">
           {job.company?.logo?.url ? (
             <img
               src={job.company.logo.url}
@@ -80,18 +87,29 @@ const JobCard = ({
             </div>
           )}
           <div className="flex-1 min-w-0">
-            <h3 className="text-base font-medium text-gray-900 group-hover:text-emerald-600 transition-colors mb-1">
+            <h3 className="text-base font-medium text-gray-900 group-hover:text-emerald-600 transition-colors mb-1 line-clamp-1">
               {job.title}
             </h3>
-            <p className="text-sm text-gray-600">
-              {job.company?.companyName || "Company"}
-            </p>
+            <div className="flex items-center gap-1.5">
+              <p className="text-sm text-gray-600 truncate">
+                {job.company?.companyName || "Company"}
+              </p>
+              {isCompanyVerified && (
+                <BadgeCheck
+                  className="w-4 h-4 text-emerald-600 flex-shrink-0"
+                  aria-label="Verified company"
+                  title="Verified company"
+                />
+              )}
+            </div>
           </div>
         </div>
+
+        {/* Applied Status Badge */}
         {isApplied && (
-          <div className="flex items-center gap-1 px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-medium">
-            <CheckCircle className="w-4 h-4" />
-            Applied
+          <div className="absolute top-4 right-14 flex items-center gap-1 px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full text-xs font-medium">
+            <CheckCircle className="w-3.5 h-3.5" />
+            <span>Applied</span>
           </div>
         )}
       </div>

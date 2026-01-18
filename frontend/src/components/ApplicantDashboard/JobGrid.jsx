@@ -1,7 +1,15 @@
 import JobCard from "./JobCard";
 import JobCardSkeleton from "../ApplicantProfile/JobCardSkeleton";
 
-const JobGrid = ({ jobs, loading, error, appliedJobIds, onJobClick }) => {
+const JobGrid = ({
+  jobs,
+  loading,
+  error,
+  appliedJobIds = new Set(),
+  onJobClick,
+  bookmarkedJobIds = new Set(),
+  onBookmarkToggle
+}) => {
   if (error) {
     return (
       <div className="bg-white border border-gray-200 rounded-xl p-6 text-center text-gray-600">
@@ -19,9 +27,10 @@ const JobGrid = ({ jobs, loading, error, appliedJobIds, onJobClick }) => {
             <JobCard
               key={job._id}
               job={job}
-              onEdit={() => {}}
-              onViewApplicants={() => {}}
-              onClick={() => onJobClick(job._id)}
+              isApplied={appliedJobIds.has(job._id)}
+              isBookmarked={bookmarkedJobIds.has(job._id)}
+              onBookmarkToggle={onBookmarkToggle}
+              onClick={onJobClick}
             />
           ))}
     </div>

@@ -1,11 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  BarChart3,
-  GraduationCap,
-  Briefcase,
-  Sparkles,
-  FileText,
+
   AlertCircle,
 } from "lucide-react";
 import useAuth from "../../hooks/useAuth";
@@ -135,7 +131,6 @@ const ApplicantProfilePage = () => {
 
     <div className="bg-white rounded-2xl border border-gray-200 p-6">
       <div className="flex items-center gap-2 mb-3">
-        <Briefcase className="w-5 h-5 text-emerald-700" />
         <h3 className="text-lg font-medium text-gray-900">Experience</h3>
       </div>
       <ExperienceManager profile={profile} onUpdate={refetch} />
@@ -143,7 +138,6 @@ const ApplicantProfilePage = () => {
 
     <div className="bg-white rounded-2xl border border-gray-200 p-6">
       <div className="flex items-center gap-2 mb-3">
-        <GraduationCap className="w-5 h-5 text-emerald-700" />
         <h3 className="text-lg font-medium text-gray-900">Education</h3>
       </div>
       <EducationManager profile={profile} onUpdate={refetch} />
@@ -157,7 +151,6 @@ const ApplicantProfilePage = () => {
     {/* Profile Strength */}
     <div className="bg-white rounded-2xl border border-gray-200 p-5">
       <div className="flex items-center gap-2 mb-4">
-        <Sparkles className="w-5 h-5 text-emerald-700" />
         <h2 className="text-lg font-medium text-gray-900">
           Profile Overview
         </h2>
@@ -168,7 +161,6 @@ const ApplicantProfilePage = () => {
     {/* Quick Stats */}
     <div className="bg-white rounded-2xl border border-gray-200 p-5">
       <div className="flex items-center gap-2 mb-4">
-        <BarChart3 className="w-5 h-5 text-emerald-700" />
         <h3 className="text-lg font-medium text-gray-900">
           Quick Stats
         </h3>
